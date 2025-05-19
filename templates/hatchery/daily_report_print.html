@@ -179,6 +179,39 @@
             margin-bottom: 20px;
         }
 
+        /* تنسيق توزيع الدفعات */
+        .distribution-group {
+            margin-bottom: 15px;
+        }
+
+        .distribution-header {
+            background-color: #f8f9fa;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .distribution-notes {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .distribution-separator {
+            border-top: 1px dashed #ccc;
+            margin: 15px 0;
+        }
+
+        .total-row {
+            background-color: #e8f4fc !important;
+            font-weight: bold;
+        }
+
         @page {
             size: A4 portrait;
             margin: 1cm;
@@ -366,28 +399,56 @@
     <div class="print-section">
         <div class="print-section-title">توزيعات الدفعات اليوم</div>
         {% if today_distributions %}
-        <table class="print-table">
-            <thead>
-                <tr>
-                    <th>اسم الدفعة</th>
-                    <th>تاريخ التوزيع</th>
-                    <th>الكتاكيت الموزعة</th>
-                    <th>عدد العملاء</th>
-                    <th>المبلغ المدفوع</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for distribution in today_distributions %}
-                <tr>
-                    <td>{{ distribution.hatching.incubation.batch_entry.batch_name.name }}</td>
-                    <td>{{ distribution.distribution_date|date:"Y-m-d" }}</td>
-                    <td>{{ distribution.total_distributed_count }}</td>
-                    <td>{{ distribution.distribution_items.count }}</td>
-                    <td>{{ distribution.total_paid_amount }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% for distribution in today_distributions %}
+            <div class="distribution-group">
+                <div class="distribution-header">
+                    <strong>اسم الدفعة:</strong> {{ distribution.hatching.incubation.batch_entry.batch_name.name }} |
+                    <strong>تاريخ التوزيع:</strong> {{ distribution.distribution_date|date:"Y-m-d" }} |
+                    <strong>إجمالي الكتاكيت:</strong> {{ distribution.total_distributed_count }}
+                </div>
+
+                <table class="print-table">
+                    <thead>
+                        <tr>
+                            <th>العميل</th>
+                            <th>عدد الكتاكيت</th>
+                            {% if show_price_in_distribution %}
+                            <th>السعر للوحدة</th>
+                            {% endif %}
+                            <th>المبلغ المدفوع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in distribution.distribution_items.all %}
+                        <tr>
+                            <td>{{ item.customer.name }}</td>
+                            <td>{{ item.chicks_count }}</td>
+                            {% if show_price_in_distribution %}
+                            <td>{{ item.price_per_unit }}</td>
+                            {% endif %}
+                            <td>{{ item.paid_amount }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <th>الإجمالي</th>
+                            <th>{{ distribution.total_distributed_count }}</th>
+                            {% if show_price_in_distribution %}
+                            <th>-</th>
+                            {% endif %}
+                            <th>{{ distribution.total_paid_amount }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="distribution-notes">
+                    {% if distribution.notes %}
+                    <strong>ملاحظات:</strong> {{ distribution.notes }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if not forloop.last %}<div class="distribution-separator"></div>{% endif %}
+            {% endfor %}
         {% else %}
         <div class="empty-message">لا توجد توزيعات دفعات اليوم</div>
         {% endif %}
@@ -465,8 +526,10 @@
                     <th>العميل</th>
                     <th>الدفعة</th>
                     <th>الكمية</th>
+                    {% if show_price_in_culled_sales %}
                     <th>السعر</th>
                     <th>الإجمالي</th>
+                    {% endif %}
                     <th>المدفوع</th>
                 </tr>
             </thead>
@@ -476,12 +539,25 @@
                     <td>{{ sale.customer.name }}</td>
                     <td>{{ sale.hatching.incubation.batch_entry.batch_name.name }}</td>
                     <td>{{ sale.quantity }}</td>
+                    {% if show_price_in_culled_sales %}
                     <td>{{ sale.price_per_unit }}</td>
                     <td>{{ sale.total_amount }}</td>
+                    {% endif %}
                     <td>{{ sale.paid_amount }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <th colspan="2">الإجمالي</th>
+                    <th>{{ total_culled_sales_count }}</th>
+                    {% if show_price_in_culled_sales %}
+                    <th>-</th>
+                    <th>{{ total_culled_sales_amount }}</th>
+                    {% endif %}
+                    <th>{{ total_culled_sales_paid }}</th>
+                </tr>
+            </tfoot>
         </table>
         {% else %}
         <div class="empty-message">لا توجد مبيعات كتاكيت فرزة اليوم</div>

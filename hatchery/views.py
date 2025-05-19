@@ -918,6 +918,15 @@ def daily_report(request):
     elif export_type == 'print':
         # إضافة التاريخ والوقت الحاليين إلى السياق
         context['current_datetime'] = timezone.now()
+
+        # إضافة إعدادات الطباعة إلى السياق
+        context['show_created_today'] = request.GET.get('show_created_today') == '1'
+        context['show_price_in_distribution'] = request.GET.get('show_price_in_distribution') == '1'
+        context['show_price_in_culled_sales'] = request.GET.get('show_price_in_culled_sales') == '1'
+
+        # حساب إجمالي المبلغ المدفوع من مبيعات الفرزة
+        context['total_culled_sales_paid'] = today_culled_sales.aggregate(total=Sum('paid_amount'))['total'] or 0
+
         return render(request, 'hatchery/daily_report_print.html', context)
 
     return render(request, 'hatchery/daily_report.html', context)

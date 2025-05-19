@@ -51,10 +51,10 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=excel"><i class="fas fa-file-excel me-1 text-success"></i> Excel</a></li>
                             <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=pdf"><i class="fas fa-file-pdf me-1 text-danger"></i> PDF</a></li>
-                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=print"><i class="fas fa-print me-1 text-primary"></i> صفحة طباعة</a></li>
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#printSettingsModal"><i class="fas fa-print me-1 text-primary"></i> صفحة طباعة</a></li>
                         </ul>
                     </div>
-                    
+
                     <form method="get" class="d-flex">
                         <input type="date" name="date" value="{{ report_date|date:'Y-m-d' }}" class="form-control me-2">
                         <button type="submit" class="btn btn-light">عرض</button>
@@ -412,6 +412,62 @@
                         {% endif %}
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- نافذة إعدادات الطباعة -->
+<div class="modal fade" id="printSettingsModal" tabindex="-1" aria-labelledby="printSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="printSettingsModalLabel">إعدادات طباعة تقرير المعمل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <form id="printSettingsForm" action="?date={{ report_date|date:'Y-m-d' }}&export=print" method="get">
+                    <input type="hidden" name="date" value="{{ report_date|date:'Y-m-d' }}">
+                    <input type="hidden" name="export" value="print">
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show_created_today" name="show_created_today" value="1" checked>
+                                <label class="form-check-label" for="show_created_today">
+                                    إظهار الدفعات التي سجلت بتاريخ اليوم حتى لو كان تاريخ الدفعة لا يوافق تاريخ اليوم
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show_price_in_distribution" name="show_price_in_distribution" value="1">
+                                <label class="form-check-label" for="show_price_in_distribution">
+                                    إظهار سعر الكتكوت في التوزيعة
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="show_price_in_culled_sales" name="show_price_in_culled_sales" value="1" checked>
+                                <label class="form-check-label" for="show_price_in_culled_sales">
+                                    إظهار سعر الكتكوت الفرزة والمدفوع والإجمالي
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('printSettingsForm').submit();">
+                    <i class="fas fa-print me-1"></i> طباعة التقرير
+                </button>
             </div>
         </div>
     </div>
