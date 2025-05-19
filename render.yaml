@@ -5,10 +5,9 @@ services:
     plan: free
     buildCommand: |
       pip install -r requirements.txt
-      python manage.py collectstatic --noinput
       python manage.py makemigrations
       python manage.py migrate
-      python manage.py createsuperuser
+      python manage.py shell < create_superuser.py
       
     startCommand: gunicorn acc.wsgi
     autoDeploy: true
