@@ -1,0 +1,488 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/invoice-styles.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ title }}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'product_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">اسم المنتج</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">القسم</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.category.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.code.id_for_label }}" class="form-label">كود المنتج</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.code.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.barcode.id_for_label }}" class="form-label">الباركود</label>
+                    {{ form.barcode }}
+                    {% if form.barcode.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.barcode.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.default_store.id_for_label }}" class="form-label">المخزن الافتراضي</label>
+                    {{ form.default_store }}
+                    {% if form.default_store.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.default_store.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.initial_balance.id_for_label }}" class="form-label">الرصيد الافتتاحي</label>
+                    {{ form.initial_balance }}
+                    {% if form.initial_balance.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.initial_balance.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        {% if form.instance.pk %}
+                            ملاحظة: تغيير الرصيد الافتتاحي سيؤدي إلى تعديل الرصيد الحالي بنفس القيمة.
+                        {% else %}
+                            سيتم تعيين الرصيد الحالي بنفس قيمة الرصيد الافتتاحي عند الإنشاء.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.image.id_for_label }}" class="form-label">صورة المنتج</label>
+                    {{ form.image }}
+                    {% if form.image.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.image.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.is_active.id_for_label }}" class="form-label">الحالة</label>
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            نشط
+                        </label>
+                    </div>
+                    {% if form.is_active.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.is_active.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">الوصف</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.description.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            <h4>وحدات المنتج</h4>
+            {{ formset.management_form }}
+
+            <div id="formset-container">
+                <table class="product-units-table">
+                    <thead>
+                        <tr>
+                            <th>الوحدة</th>
+                            <th>معامل التحويل</th>
+                            <th>باركود الوحدة</th>
+                            <th>سعر الشراء</th>
+                            <th>سعر البيع</th>
+                            <th>للشراء</th>
+                            <th>للبيع</th>
+                            <th>حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in formset.forms %}
+                            <tr class="formset-row">
+                                <td>
+                                    {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                    {{ form.unit }}
+                                    {% if form.unit.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.unit.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ form.conversion_factor }}
+                                    {% if form.conversion_factor.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.conversion_factor.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ form.barcode }}
+                                    {% if form.barcode.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.barcode.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ form.purchase_price }}
+                                    {% if form.purchase_price.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.purchase_price.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ form.selling_price }}
+                                    {% if form.selling_price.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.selling_price.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {{ form.is_default_purchase }}
+                                </td>
+                                <td class="text-center">
+                                    {{ form.is_default_sale }}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="delete-row btn btn-sm btn-danger" title="حذف الوحدة">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mb-3">
+                <button type="button" id="add-form" class="btn btn-outline-primary">
+                    <i class="fas fa-plus-circle"></i> إضافة وحدة
+                </button>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" id="submit-button" class="btn btn-primary">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                <a href="{% url 'product_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addButton = document.getElementById('add-form');
+        const formsetContainer = document.getElementById('formset-container');
+        const totalForms = document.getElementById('id_units-TOTAL_FORMS');
+
+        // إضافة صف واحد على الأقل إذا لم تكن هناك صفوف
+        const rows = formsetContainer.querySelectorAll('.formset-row');
+        if (rows.length === 0) {
+            addNewRow();
+
+            // تعيين الوحدة الأولى كوحدة شراء وبيع افتراضية
+            setTimeout(() => {
+                const firstRow = formsetContainer.querySelector('.formset-row');
+                if (firstRow) {
+                    const defaultPurchaseCheckbox = firstRow.querySelector('input[name$="-is_default_purchase"]');
+                    const defaultSaleCheckbox = firstRow.querySelector('input[name$="-is_default_sale"]');
+
+                    if (defaultPurchaseCheckbox) defaultPurchaseCheckbox.checked = true;
+                    if (defaultSaleCheckbox) defaultSaleCheckbox.checked = true;
+                }
+            }, 100);
+        }
+
+        // دالة لإضافة صف جديد
+        function addNewRow() {
+            const formCount = parseInt(totalForms.value);
+
+            // إذا كان هناك صف موجود، نستخدمه كقالب
+            let newForm;
+            if (formsetContainer.querySelector('.formset-row')) {
+                newForm = formsetContainer.querySelector('.formset-row').cloneNode(true);
+
+                // تحديث مؤشر النموذج
+                newForm.innerHTML = newForm.innerHTML.replace(/units-\d+/g, `units-${formCount}`);
+                newForm.innerHTML = newForm.innerHTML.replace(/units_set-\d+/g, `units_set-${formCount}`);
+
+                // مسح قيم النموذج
+                newForm.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+                    input.value = '';
+                });
+
+                newForm.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            } else {
+                // إنشاء صف جديد من الصفر إذا لم يكن هناك صفوف موجودة
+                newForm = document.createElement('tr');
+                newForm.className = 'formset-row';
+
+                // هنا يمكن إضافة محتوى الصف الجديد حسب الحاجة
+                // (هذا الجزء لن يتم تنفيذه عادة لأننا نضيف صفًا واحدًا على الأقل عند تحميل الصفحة)
+            }
+
+            // إضافة النموذج الجديد إلى الحاوية
+            formsetContainer.querySelector('tbody').appendChild(newForm);
+
+            // تحديث إجمالي النماذج
+            totalForms.value = formCount + 1;
+        }
+
+        // إضافة نموذج جديد عند النقر على زر الإضافة
+        addButton.addEventListener('click', function() {
+            addNewRow();
+        });
+
+        // Delete form
+        formsetContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-row') || e.target.closest('.delete-row')) {
+                e.preventDefault();
+                const row = e.target.closest('.formset-row');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+
+                if (deleteCheckbox) {
+                    // إذا كان هناك checkbox للحذف (للوحدات المحفوظة مسبقاً)
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    // للوحدات الجديدة التي لم يتم حفظها بعد
+                    const formCount = parseInt(totalForms.value);
+                    if (formCount > 1) {
+                        row.remove();
+                        totalForms.value = formCount - 1;
+
+                        // إعادة ترقيم النماذج
+                        const rows = formsetContainer.querySelectorAll('.formset-row');
+                        rows.forEach((row, index) => {
+                            row.innerHTML = row.innerHTML.replace(/units-\d+/g, `units-${index}`);
+                            row.innerHTML = row.innerHTML.replace(/units_set-\d+/g, `units_set-${index}`);
+                        });
+                    } else {
+                        alert('يجب أن يكون هناك وحدة واحدة على الأقل للمنتج');
+                    }
+                }
+            }
+        });
+
+        // تصحيح خطأ في النص
+        document.querySelectorAll('.form-check-label').forEach(label => {
+            if (label.textContent.trim() === 'للبيعس') {
+                label.textContent = 'للبيع';
+            }
+        });
+
+        // إضافة مستمعي أحداث لخانات الاختيار للتأكد من أن هناك وحدة افتراضية واحدة فقط
+        function setupCheckboxListeners() {
+            // مستمع لخانات اختيار وحدة الشراء الافتراضية
+            document.querySelectorAll('input[name$="-is_default_purchase"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // إلغاء تحديد جميع خانات الاختيار الأخرى
+                        document.querySelectorAll('input[name$="-is_default_purchase"]').forEach(otherCheckbox => {
+                            if (otherCheckbox !== this) {
+                                otherCheckbox.checked = false;
+                            }
+                        });
+                    } else {
+                        // التأكد من أن هناك خانة اختيار واحدة على الأقل محددة
+                        const anyChecked = Array.from(document.querySelectorAll('input[name$="-is_default_purchase"]')).some(cb => cb.checked);
+                        if (!anyChecked) {
+                            this.checked = true;
+                            alert('يجب أن تكون هناك وحدة شراء افتراضية واحدة على الأقل');
+                        }
+                    }
+                });
+            });
+
+            // مستمع لخانات اختيار وحدة البيع الافتراضية
+            document.querySelectorAll('input[name$="-is_default_sale"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // إلغاء تحديد جميع خانات الاختيار الأخرى
+                        document.querySelectorAll('input[name$="-is_default_sale"]').forEach(otherCheckbox => {
+                            if (otherCheckbox !== this) {
+                                otherCheckbox.checked = false;
+                            }
+                        });
+                    } else {
+                        // التأكد من أن هناك خانة اختيار واحدة على الأقل محددة
+                        const anyChecked = Array.from(document.querySelectorAll('input[name$="-is_default_sale"]')).some(cb => cb.checked);
+                        if (!anyChecked) {
+                            this.checked = true;
+                            alert('يجب أن تكون هناك وحدة بيع افتراضية واحدة على الأقل');
+                        }
+                    }
+                });
+            });
+        }
+
+        // تهيئة مستمعي الأحداث عند تحميل الصفحة
+        setupCheckboxListeners();
+
+        // إضافة مستمع حدث لزر الإضافة لإعداد مستمعي الأحداث للصفوف الجديدة
+        addButton.addEventListener('click', function() {
+            // انتظر قليلاً حتى يتم إضافة الصف الجديد إلى DOM
+            setTimeout(setupCheckboxListeners, 100);
+        });
+
+        // إضافة مستمع حدث لزر الحفظ
+        const submitButton = document.getElementById('submit-button');
+        const form = document.querySelector('form');
+
+        submitButton.addEventListener('click', function(e) {
+            e.preventDefault(); // منع السلوك الافتراضي للزر
+
+            // التحقق من وجود وحدة شراء افتراضية ووحدة بيع افتراضية
+            const visibleRows = Array.from(document.querySelectorAll('.formset-row')).filter(row => row.style.display !== 'none');
+
+            if (visibleRows.length === 0) {
+                alert('يجب إضافة وحدة واحدة على الأقل للمنتج');
+                return;
+            }
+
+            // التحقق فقط من الصفوف المرئية (غير المحذوفة)
+            const hasPurchaseDefault = visibleRows.some(row => {
+                const checkbox = row.querySelector('input[name$="-is_default_purchase"]');
+                return checkbox && checkbox.checked;
+            });
+
+            const hasSaleDefault = visibleRows.some(row => {
+                const checkbox = row.querySelector('input[name$="-is_default_sale"]');
+                return checkbox && checkbox.checked;
+            });
+
+            if (!hasPurchaseDefault) {
+                // إذا لم يتم تحديد وحدة شراء افتراضية، قم بتحديد الوحدة الأولى
+                const firstRow = visibleRows[0];
+                const checkbox = firstRow.querySelector('input[name$="-is_default_purchase"]');
+                if (checkbox) {
+                    checkbox.checked = true;
+                    alert('تم تعيين الوحدة الأولى كوحدة شراء افتراضية');
+                } else {
+                    alert('يجب تحديد وحدة شراء افتراضية واحدة على الأقل');
+                    return;
+                }
+            }
+
+            if (!hasSaleDefault) {
+                // إذا لم يتم تحديد وحدة بيع افتراضية، قم بتحديد الوحدة الأولى
+                const firstRow = visibleRows[0];
+                const checkbox = firstRow.querySelector('input[name$="-is_default_sale"]');
+                if (checkbox) {
+                    checkbox.checked = true;
+                    alert('تم تعيين الوحدة الأولى كوحدة بيع افتراضية');
+                } else {
+                    alert('يجب تحديد وحدة بيع افتراضية واحدة على الأقل');
+                    return;
+                }
+            }
+
+            // إرسال النموذج
+            form.submit();
+        });
+    });
+</script>
+{% endblock %}

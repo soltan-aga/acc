@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}الرئيسية | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <h1 class="text-center mb-4">نظام إدارة المخازن والمحاسبة</h1>
+                <p class="text-center">مرحباً بك في نظام إدارة المخازن والمحاسبة، النظام الشامل لإدارة الشركات والفروع والمخازن والمبيعات والمشتريات.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">الشركات والفروع</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ companies_count }}</div>
+                        <div class="text-muted">شركة</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ branches_count }}</div>
+                        <div class="text-muted">فرع</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'company_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-building"></i> إدارة الشركات
+                    </a>
+                    <a href="{% url 'branch_list' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-code-branch"></i> إدارة الفروع
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">المخازن والخزن</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ stores_count }}</div>
+                        <div class="text-muted">مخزن</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ safes_count }}</div>
+                        <div class="text-muted">خزنة</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'store_list' %}" class="btn btn-outline-success">
+                        <i class="fas fa-warehouse"></i> إدارة المخازن
+                    </a>
+                    <a href="{% url 'safe_list' %}" class="btn btn-outline-success">
+                        <i class="fas fa-money-check-alt"></i> إدارة الخزن
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">المناديب والسائقين</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ representatives_count }}</div>
+                        <div class="text-muted">مندوب</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ drivers_count }}</div>
+                        <div class="text-muted">سائق</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'representative_list' %}" class="btn btn-outline-info">
+                        <i class="fas fa-user-tie"></i> إدارة المناديب
+                    </a>
+                    <a href="{% url 'driver_list' %}" class="btn btn-outline-info">
+                        <i class="fas fa-truck"></i> إدارة السائقين
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">العملاء والموردين</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ customers_count }}</div>
+                        <div class="text-muted">عميل</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ suppliers_count }}</div>
+                        <div class="text-muted">مورد</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'customer_list' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-users"></i> إدارة العملاء
+                    </a>
+                    <a href="{% url 'supplier_list' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-truck-loading"></i> إدارة الموردين
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">المنتجات</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ products_count }}</div>
+                        <div class="text-muted">منتج</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ categories_count }}</div>
+                        <div class="text-muted">تصنيف</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-box"></i> إدارة المنتجات
+                    </a>
+                    <a href="{% url 'category_list' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-tags"></i> إدارة التصنيفات
+                    </a>
+                    <a href="{% url 'unit_list' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-ruler"></i> إدارة وحدات القياس
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">الفواتير</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ sale_invoices_count }}</div>
+                        <div class="text-muted">فاتورة بيع</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="display-6 mb-1">{{ purchase_invoices_count }}</div>
+                        <div class="text-muted">فاتورة شراء</div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'sale_invoice_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-invoice-dollar"></i> فواتير البيع
+                    </a>
+                    <a href="{% url 'purchase_invoice_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-invoice"></i> فواتير الشراء
+                    </a>
+                    <a href="{% url 'sale_return_invoice_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo-alt"></i> مرتجعات البيع
+                    </a>
+                    <a href="{% url 'purchase_return_invoice_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo"></i> مرتجعات الشراء
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">التقارير</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line"></i> تقرير المبيعات
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-bar"></i> تقرير المشتريات
+                    </a>
+                    <a href="{% url 'product_inventory' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-pie"></i> تقرير المخزون
+                    </a>
+                    <a href="{% url 'product_transaction_list' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-exchange-alt"></i> حركات المخزون
+                    </a>
+                    <a href="{% url 'store_permit_list' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-clipboard-list"></i> أذونات المخزن
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <i class="fas fa-money-bill-wave"></i> تقرير الأرباح والخسائر
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

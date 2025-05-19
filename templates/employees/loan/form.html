@@ -1,0 +1,158 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}{{ title|default:"إضافة سلفة جديدة" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ title|default:"إضافة سلفة جديدة" }}</h1>
+        <a href="{% url 'employees:loan_list' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-right fa-sm text-white-50"></i> العودة للقائمة
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">بيانات السلفة</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                            {{ form.employee }}
+                            {% if form.employee.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.employee.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.employee.help_text %}
+                                <small class="form-text text-muted">{{ form.employee.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.amount.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.amount.help_text %}
+                                <small class="form-text text-muted">{{ form.amount.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.date.help_text %}
+                                <small class="form-text text-muted">{{ form.date.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.safe.id_for_label }}">{{ form.safe.label }}</label>
+                            {{ form.safe }}
+                            {% if form.safe.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.safe.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.safe.help_text %}
+                                <small class="form-text text-muted">{{ form.safe.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.description.help_text %}
+                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-check">
+                            {{ form.auto_post }}
+                            <label class="form-check-label" for="{{ form.auto_post.id_for_label }}">
+                                {{ form.auto_post.label }}
+                            </label>
+                            {% if form.auto_post.help_text %}
+                                <small class="form-text text-muted">{{ form.auto_post.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                    <a href="{% url 'employees:loan_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تهيئة حقول التاريخ
+        if (!$('#{{ form.date.id_for_label }}').val()) {
+            $('#{{ form.date.id_for_label }}').val(new Date().toISOString().split('T')[0]);
+        }
+    });
+</script>
+{% endblock %}

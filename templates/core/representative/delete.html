@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف المندوب {{ representative.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">تأكيد الحذف</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <p>هل أنت متأكد من حذف المندوب <strong>{{ representative.name }}</strong>؟</p>
+                    <p class="mb-0">سيتم حذف جميع البيانات المرتبطة بهذا المندوب بما في ذلك المبيعات والعمولات.</p>
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>الاسم</th>
+                            <td>{{ representative.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف</th>
+                            <td dir="ltr">{{ representative.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ representative.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهوية</th>
+                            <td>{{ representative.id_number|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>نسبة العمولة</th>
+                            <td>{{ representative.commission_percentage }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> تأكيد الحذف
+                        </button>
+                        <a href="{% url 'representative_detail' representative.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

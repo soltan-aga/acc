@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الصفحة الرئيسية للمخزون{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">الصفحة الرئيسية للمخزون</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- إحصائيات عامة -->
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="card-title mb-0">إحصائيات عامة</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            عدد المطهرات
+                                            <span class="badge bg-primary rounded-pill">{{ disinfectants_count }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            عدد الموردين
+                                            <span class="badge bg-primary rounded-pill">{{ suppliers_count }}</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            عدد التصنيفات
+                                            <span class="badge bg-primary rounded-pill">{{ categories_count }}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- المطهرات منخفضة المخزون -->
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="card-title mb-0">المطهرات منخفضة المخزون</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if low_stock_disinfectants %}
+                                        <ul class="list-group list-group-flush">
+                                            {% for disinfectant in low_stock_disinfectants %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    {{ disinfectant.name }}
+                                                    <div>
+                                                        <span class="badge {% if disinfectant.stock_status == 'نفذ' %}bg-danger{% else %}bg-warning{% endif %} me-2">{{ disinfectant.stock_status }}</span>
+                                                        <a href="{% url 'inventory:disinfectant_detail' disinfectant.id %}" class="btn btn-sm btn-info">التفاصيل</a>
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-muted">لا توجد مطهرات منخفضة المخزون حالياً</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="card-title mb-0">روابط سريعة</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'inventory:disinfectant_list' %}" class="btn btn-primary w-100">
+                                                <i class="fas fa-list me-2"></i> قائمة المطهرات
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'inventory:supplier_list' %}" class="btn btn-info w-100">
+                                                <i class="fas fa-truck me-2"></i> الموردين
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'inventory:received_list' %}" class="btn btn-warning w-100">
+                                                <i class="fas fa-arrow-circle-down me-2"></i> الواردات
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <a href="{% url 'inventory:issued_list' %}" class="btn btn-success w-100">
+                                                <i class="fas fa-arrow-circle-up me-2"></i> المنصرفات
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

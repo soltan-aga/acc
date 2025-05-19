@@ -1,0 +1,44 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}حذف توزيع دفعة - {{ distribution.hatching.incubation.batch_entry.batch_name }} - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-trash me-2"></i>حذف توزيع دفعة</h4>
+            </div>
+            <div class="card-body">
+                <p class="alert alert-warning">
+                    هل أنت متأكد من رغبتك في حذف توزيع الدفعة "{{ distribution.hatching.incubation.batch_entry.batch_name }}" بتاريخ {{ distribution.distribution_date }}؟
+                </p>
+                <p>
+                    <strong>تفاصيل التوزيع:</strong>
+                </p>
+                <ul>
+                    <li>تاريخ التوزيع: {{ distribution.distribution_date }}</li>
+                    <li>إجمالي الكتاكيت الموزعة: {{ distribution.total_distributed_count }}</li>
+                    <li>إجمالي المبلغ المدفوع: {{ distribution.total_paid_amount }}</li>
+                </ul>
+                <p class="alert alert-danger">
+                    <strong>تحذير:</strong> سيتم حذف جميع عناصر التوزيع المرتبطة بهذا التوزيع.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hatchery:distribution_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i> حذف
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

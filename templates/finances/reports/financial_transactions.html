@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير الحركات المالية | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">تقرير الحركات المالية</h2>
+        <p class="text-muted">عرض تفصيلي لجميع الحركات المالية في النظام</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'financial_transactions_print' %}?{{ request.GET.urlencode }}" class="btn btn-success">
+            <i class="fas fa-print"></i> طباعة
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">خيارات التصفية</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="safe" class="form-label">الخزنة</label>
+                        <select name="safe" id="safe" class="form-select">
+                            <option value="">-- جميع الخزن --</option>
+                            {% for safe in safes %}
+                                <option value="{{ safe.id }}" {% if selected_safe == safe.id|stringformat:"i" or forloop.first and not selected_safe %}selected{% endif %}>
+                                    {{ safe.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">نوع العملية</label>
+                        <select name="type" id="type" class="form-select">
+                            <option value="">-- جميع العمليات --</option>
+                            {% for type_code, type_name in transaction_types %}
+                                <option value="{{ type_code }}" {% if selected_type == type_code %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="contact" class="form-label">العميل/المورد</label>
+                        <select name="contact" id="contact" class="form-select">
+                            <option value="">-- الكل --</option>
+                            {% for contact in contacts %}
+                                <option value="{{ contact.id }}" {% if selected_contact == contact.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ contact.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="q" class="form-label">بحث</label>
+                        <input type="text" name="q" id="q" class="form-control" placeholder="الوصف، الرقم المرجعي..." value="{{ search_query|default:'' }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="from_date" class="form-label">من تاريخ</label>
+                        <input type="date" name="from_date" id="from_date" class="form-control" value="{{ from_date|default:'' }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="to_date" class="form-label">إلى تاريخ</label>
+                        <input type="date" name="to_date" id="to_date" class="form-control" value="{{ to_date|default:'' }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="min_amount" class="form-label">الحد الأدنى للمبلغ</label>
+                        <input type="number" name="min_amount" id="min_amount" class="form-control" step="0.01" value="{{ min_amount|default:'' }}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="max_amount" class="form-label">الحد الأقصى للمبلغ</label>
+                        <input type="number" name="max_amount" id="max_amount" class="form-control" step="0.01" value="{{ max_amount|default:'' }}">
+                    </div>
+
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> تصفية
+                        </button>
+                        <a href="{% url 'financial_transactions_report' %}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> إعادة تعيين
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">إجمالي الإيرادات (وارد)</h5>
+                <h3 class="mb-0">{{ total_in }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">إجمالي المصروفات (صادر)</h5>
+                <h3 class="mb-0">{{ total_out }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card {% if net_total >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">صافي الحركة</h5>
+                <h3 class="mb-0">{{ net_total }}</h3>
+            </div>
+        </div>
+    </div>
+    {% if current_safe_balance is not None %}
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">الرصيد الحالي للخزنة</h5>
+                <h3 class="mb-0">{{ current_safe_balance }}</h3>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if final_balance is not None %}
+    <div class="col-md-3">
+        <div class="card bg-dark text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title">الرصيد النهائي للفترة</h5>
+                <h3 class="mb-0">{{ final_balance }}</h3>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card shadow">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">الحركات المالية</h5>
+    </div>
+    <div class="card-body">
+        {% if transactions_with_balance %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>#</th>
+                            <th>التاريخ</th>
+                            <th>الخزنة</th>
+                            <th>نوع العملية</th>
+                            <th>وارد</th>
+                            <th>صادر</th>
+                            <th>العميل/المورد</th>
+                            <th>الوصف</th>
+                            <th>المرجع</th>
+                            <th>الرصيد قبل</th>
+                            <th>الرصيد بعد</th>
+                            <th class="no-print">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if previous_balance is not None %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="4" class="text-center">الرصيد السابق حتى {{ from_date }}</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">-</td>
+                            <td colspan="3"></td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">{{ previous_balance }}</td>
+                            <td class="no-print"></td>
+                        </tr>
+                        {% endif %}
+                        {% for item in transactions_with_balance %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ item.transaction.date|date:"Y-m-d H:i" }}</td>
+                                <td>{{ item.transaction.safe.name }}</td>
+                                <td>
+                                    {% if item.transaction.transaction_type == 'sale_invoice' %}
+                                        <span class="badge bg-primary">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'purchase_invoice' %}
+                                        <span class="badge bg-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'sale_return_invoice' %}
+                                        <span class="badge bg-warning">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'purchase_return_invoice' %}
+                                        <span class="badge bg-info">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'collection' %}
+                                        <span class="badge bg-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'payment' %}
+                                        <span class="badge bg-secondary">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'deposit' %}
+                                        <span class="badge bg-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'withdrawal' %}
+                                        <span class="badge bg-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'expense' %}
+                                        <span class="badge bg-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% elif item.transaction.transaction_type == 'income' %}
+                                        <span class="badge bg-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if item.transaction.transaction_type == 'sale_invoice' or item.transaction.transaction_type == 'collection' or item.transaction.transaction_type == 'deposit' or item.transaction.transaction_type == 'income' or item.transaction.transaction_type == 'purchase_return_invoice' %}
+                                        {{ item.transaction.amount }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if item.transaction.transaction_type == 'purchase_invoice' or item.transaction.transaction_type == 'payment' or item.transaction.transaction_type == 'withdrawal' or item.transaction.transaction_type == 'expense' or item.transaction.transaction_type == 'sale_return_invoice' %}
+                                        {{ item.transaction.amount }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.transaction.contact %}
+                                        <a href="{% url 'contact_detail' item.transaction.contact.pk %}">
+                                            {{ item.transaction.contact.name }}
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.transaction.description|default:"-" }}</td>
+                                <td>
+                                    {% if item.transaction.invoice %}
+                                        <a href="{% url 'invoice_detail' item.transaction.invoice.pk %}">
+                                            {{ item.transaction.invoice.number }}
+                                        </a>
+                                    {% else %}
+                                        {{ item.transaction.reference_number|default:"-" }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ item.transaction.balance_before }}</td>
+                                <td class="text-end">{{ item.running_balance }}</td>
+                                <td class="no-print">
+                                    {% if item.transaction.invoice %}
+                                        <a href="{% url 'invoice_detail' item.transaction.invoice.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-dark fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">الإجمالي</td>
+                            <td class="text-end">{{ total_in }}</td>
+                            <td class="text-end">{{ total_out }}</td>
+                            <td colspan="3"></td>
+                            <td class="text-end">
+                                {% if previous_balance is not None %}
+                                    الرصيد النهائي:
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if final_balance is not None %}
+                                    {{ final_balance }}
+                                {% endif %}
+                            </td>
+                            <td class="no-print"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                لا توجد حركات مالية مطابقة لمعايير البحث.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-header {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .badge {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+            background-color: transparent !important;
+        }
+
+        .table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+
+        .table thead th {
+            background-color: #f2f2f2 !important;
+            color: #000 !important;
+            font-weight: bold !important;
+        }
+
+        .bg-success, .bg-danger, .bg-primary, .bg-warning {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+        }
+    }
+</style>
+{% endblock %}

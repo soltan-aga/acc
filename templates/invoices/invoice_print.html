@@ -1,0 +1,592 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة الفاتورة #{{ invoice.number }}</title>
+    <!-- إضافة مكتبة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Regular.ttf" %}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Bold.ttf" %}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: 'Tajawal', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: #333;
+            font-size: 12pt;
+        }
+
+        .invoice-container {
+            width: 21cm;
+            min-height: 29.7cm;
+            padding: 1cm;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+        }
+
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .company-info {
+            text-align: right;
+        }
+
+        .company-logo {
+            max-width: 200px;
+            max-height: 100px;
+        }
+
+        .company-name {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #3498db;
+            margin: 0;
+        }
+
+        .company-details {
+            font-size: 10pt;
+        }
+
+        .invoice-title {
+            text-align: center;
+            font-size: 20pt;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #3498db;
+            border: 2px solid #3498db;
+            padding: 8px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+
+        .invoice-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 12pt;
+        }
+
+        .invoice-info-group {
+            width: 48%;
+        }
+
+        .invoice-info-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+
+        .invoice-info-label {
+            font-weight: bold;
+            width: 40%;
+        }
+
+        .invoice-info-value {
+            width: 60%;
+        }
+
+        .invoice-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .invoice-items th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            font-size: 12pt;
+            border: 1px solid #ddd;
+        }
+
+        .invoice-items td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            font-size: 12pt;
+        }
+
+        .invoice-items tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .invoice-totals {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .invoice-notes {
+            width: 60%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            min-height: 100px;
+        }
+
+        .invoice-summary {
+            width: 35%;
+        }
+
+        .invoice-summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice-summary-table td {
+            padding: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .invoice-summary-table .label {
+            font-weight: bold;
+            background-color: #f9f9f9;
+            width: 60%;
+        }
+
+        .invoice-summary-table .value {
+            text-align: left;
+            width: 40%;
+        }
+
+        .invoice-payment {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+        }
+
+        .payment-info {
+            display: flex;
+            align-items: center;
+            font-size: 14pt;
+        }
+
+        .payment-label {
+            font-weight: bold;
+            margin-left: 10px;
+            color: #3498db;
+        }
+
+        .invoice-footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10pt;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+
+        .custom-header-text {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px dashed #3498db;
+            background-color: #f8f9fa;
+            text-align: center;
+            font-size: 12pt;
+            color: #333;
+            border-radius: 5px;
+        }
+
+        .custom-footer-text {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px dashed #3498db;
+            background-color: #f8f9fa;
+            text-align: center;
+            font-size: 12pt;
+            color: #333;
+            border-radius: 5px;
+        }
+
+        /* تنسيق أزرار الطباعة والتصدير - تصميم مسطح وحجم أصغر */
+        .print-button-container {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 8px;
+        }
+
+        .print-button, .export-button, .back-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 6px 12px;
+            font-family: 'Tajawal', Arial, sans-serif;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .print-button:hover, .export-button:hover, .back-button:hover {
+            opacity: 0.9;
+        }
+
+        .print-button {
+            background-color: #3498db;
+        }
+
+        .pdf-button {
+            background-color: #e74c3c;
+        }
+
+        .excel-button {
+            background-color: #2ecc71;
+        }
+
+        .back-button {
+            background-color: #95a5a6;
+        }
+
+        .print-button i, .export-button i, .back-button i {
+            margin-left: 6px;
+            font-size: 12px;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+
+            .invoice-container {
+                width: 100%;
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- رأس الفاتورة -->
+        {% if not settings.hide_company_info %}
+        <div class="invoice-header">
+            <div class="company-info">
+                <h1 class="company-name">{{ company.name }}</h1>
+                <div class="company-details">
+                    <p>{{ company.address }}</p>
+                    <p>هاتف: {{ company.phone }}</p>
+                    <p>البريد الإلكتروني: {{ company.email }}</p>
+                </div>
+            </div>
+            <div>
+                {% if company.logo %}
+                <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="company-logo">
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if settings.invoice_header_text %}
+        <div class="custom-header-text">
+            {{ settings.invoice_header_text|linebreaks }}
+        </div>
+        {% endif %}
+
+        <!-- عنوان الفاتورة -->
+        <div class="invoice-title">
+            {% if invoice.invoice_type == 'sale' %}
+                فاتورة بيع
+            {% elif invoice.invoice_type == 'purchase' %}
+                فاتورة شراء
+            {% elif invoice.invoice_type == 'sale_return' %}
+                مرتجع بيع
+            {% elif invoice.invoice_type == 'purchase_return' %}
+                مرتجع شراء
+            {% endif %}
+        </div>
+
+        <!-- معلومات الفاتورة -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+                <td style="width: 20%; font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">رقم الفاتورة:</td>
+                <td style="width: 30%; padding: 5px; border: 1px solid #ddd;">{{ invoice.number }}</td>
+                <td style="width: 20%; font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">{{ invoice.invoice_type|yesno:"العميل,المورد" }}:</td>
+                <td style="width: 30%; padding: 5px; border: 1px solid #ddd;">{{ invoice.contact.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">التاريخ:</td>
+                <td style="padding: 5px; border: 1px solid #ddd;">{{ invoice.date|date:"Y-m-d" }}</td>
+                <td style="font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">المخزن:</td>
+                <td style="padding: 5px; border: 1px solid #ddd;">{{ invoice.store.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">طريقة الدفع:</td>
+                <td style="padding: 5px; border: 1px solid #ddd;">{{ invoice.get_payment_type_display }}</td>
+                <td style="font-weight: bold; padding: 5px; border: 1px solid #ddd; background-color: #f9f9f9;">
+                    {% if invoice.representative %}المندوب:{% elif invoice.driver %}السائق:{% else %}الخزنة:{% endif %}
+                </td>
+                <td style="padding: 5px; border: 1px solid #ddd;">
+                    {% if invoice.representative %}{{ invoice.representative.name }}
+                    {% elif invoice.driver %}{{ invoice.driver.name }}
+                    {% else %}{{ invoice.safe.name }}{% endif %}
+                </td>
+            </tr>
+        </table>
+
+        <!-- بنود الفاتورة -->
+        <table class="invoice-items">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المنتج</th>
+                    <th>الوحدة</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الخصم</th>
+                    <th>الضريبة</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.product_unit.unit.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.unit_price }}</td>
+                    <td>{{ item.discount_amount }}</td>
+                    <td>{{ item.tax_amount }}</td>
+                    <td>{{ item.net_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- إجماليات الفاتورة والملاحظات -->
+        <div class="invoice-totals">
+            <div class="invoice-notes">
+                <h3>ملاحظات:</h3>
+                <p>{{ invoice.notes|default:"لا توجد ملاحظات" }}</p>
+            </div>
+            <div class="invoice-summary">
+                <table class="invoice-summary-table">
+                    <tr>
+                        <td class="label">الإجمالي:</td>
+                        <td class="value">{{ invoice.total_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">الخصم:</td>
+                        <td class="value">{{ invoice.discount_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">الضريبة:</td>
+                        <td class="value">{{ invoice.tax_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">الصافي:</td>
+                        <td class="value">{{ invoice.net_amount }}</td>
+                    </tr>
+                    {% if settings.show_previous_balance %}
+                    <tr>
+                        <td class="label">الرصيد السابق:</td>
+                        <td class="value">{{ invoice.contact.current_balance }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- معلومات الدفع -->
+        <div class="invoice-payment">
+            <div class="payment-info">
+                <span class="payment-label">المدفوع:</span>
+                <span>{{ invoice.paid_amount }}</span>
+            </div>
+            <div class="payment-info">
+                <span class="payment-label">المتبقي:</span>
+                <span>{{ invoice.remaining_amount }}</span>
+            </div>
+        </div>
+
+        <!-- ذيل الفاتورة -->
+        {% if settings.invoice_footer_text %}
+        <div class="custom-footer-text">
+            {{ settings.invoice_footer_text|linebreaks }}
+        </div>
+        {% endif %}
+
+        <div class="invoice-footer">
+            <p>تم إنشاء هذه الفاتورة بواسطة نظام إدارة المخازن والمبيعات</p>
+            {% if not settings.hide_company_info %}
+            <p>{{ company.name }} - {{ company.address }}</p>
+            {% endif %}
+        </div>
+
+        <!-- أزرار الطباعة والتصدير (لا تظهر عند الطباعة) -->
+        <div class="print-button-container no-print">
+            <button onclick="window.print();" class="print-button">
+                <i class="fas fa-print"></i> طباعة الفاتورة
+            </button>
+            <button onclick="exportToPDF()" class="export-button pdf-button">
+                <i class="fas fa-file-pdf"></i> تصدير PDF
+            </button>
+            <button onclick="exportToExcel()" class="export-button excel-button">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </button>
+            <button onclick="window.history.back();" class="back-button">
+                <i class="fas fa-arrow-right"></i> العودة
+            </button>
+        </div>
+    </div>
+    <!-- إضافة مكتبات jsPDF و SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // دالة تصدير إلى PDF
+        function exportToPDF() {
+            // إخفاء الأزرار مؤقتًا
+            const buttonContainer = document.querySelector('.print-button-container');
+            buttonContainer.style.display = 'none';
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4'); // portrait orientation
+
+            // إضافة دعم للغة العربية
+            doc.addFont('{% static "fonts/Tajawal-Regular.ttf" %}', 'Tajawal', 'normal');
+            doc.addFont('{% static "fonts/Tajawal-Bold.ttf" %}', 'Tajawal', 'bold');
+            doc.setFont('Tajawal');
+
+            // تحويل HTML إلى صورة
+            html2canvas(document.querySelector('.invoice-container'), {
+                scale: 2, // زيادة الدقة
+                useCORS: true,
+                logging: false,
+                allowTaint: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 190; // عرض A4 portrait
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                doc.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                doc.save('فاتورة_{{ invoice.number }}.pdf');
+
+                // إعادة إظهار الأزرار
+                buttonContainer.style.display = 'flex';
+            });
+        }
+
+        // دالة تصدير إلى Excel
+        function exportToExcel() {
+            // إنشاء مصفوفة البيانات
+            const data = [];
+
+            // إضافة معلومات الشركة
+            data.push(['{{ company.name }}']);
+            data.push(['{{ company.address }}']);
+            data.push(['هاتف: {{ company.phone }}']);
+            data.push([]);
+
+            // إضافة نوع الفاتورة
+            {% if invoice.invoice_type == 'sale' %}
+                data.push(['فاتورة بيع']);
+            {% elif invoice.invoice_type == 'purchase' %}
+                data.push(['فاتورة شراء']);
+            {% elif invoice.invoice_type == 'sale_return' %}
+                data.push(['مرتجع بيع']);
+            {% elif invoice.invoice_type == 'purchase_return' %}
+                data.push(['مرتجع شراء']);
+            {% endif %}
+            data.push([]);
+
+            // إضافة معلومات الفاتورة
+            data.push(['رقم الفاتورة:', '{{ invoice.number }}', '{{ invoice.invoice_type|yesno:"العميل,المورد" }}:', '{{ invoice.contact.name }}']);
+            data.push(['التاريخ:', '{{ invoice.date|date:"Y-m-d" }}', 'المخزن:', '{{ invoice.store.name }}']);
+            data.push(['طريقة الدفع:', '{{ invoice.get_payment_type_display }}',
+                '{% if invoice.representative %}المندوب:{% elif invoice.driver %}السائق:{% else %}الخزنة:{% endif %}',
+                '{% if invoice.representative %}{{ invoice.representative.name }}{% elif invoice.driver %}{{ invoice.driver.name }}{% else %}{{ invoice.safe.name }}{% endif %}'
+            ]);
+            data.push([]);
+
+            // إضافة رأس جدول المنتجات
+            data.push(['#', 'المنتج', 'الوحدة', 'الكمية', 'السعر', 'الخصم', 'الضريبة', 'الإجمالي']);
+
+            // إضافة بنود الفاتورة
+            {% for item in invoice.items.all %}
+                data.push([
+                    '{{ forloop.counter }}',
+                    '{{ item.product.name }}',
+                    '{{ item.product_unit.unit.name }}',
+                    '{{ item.quantity }}',
+                    '{{ item.unit_price }}',
+                    '{{ item.discount_amount }}',
+                    '{{ item.tax_amount }}',
+                    '{{ item.net_price }}'
+                ]);
+            {% endfor %}
+            data.push([]);
+
+            // إضافة إجماليات الفاتورة
+            data.push(['الإجمالي:', '{{ invoice.total_amount }}']);
+            data.push(['الخصم:', '{{ invoice.discount_amount }}']);
+            data.push(['الضريبة:', '{{ invoice.tax_amount }}']);
+            data.push(['الصافي:', '{{ invoice.net_amount }}']);
+            data.push([]);
+
+            // إضافة معلومات الدفع
+            data.push(['المدفوع:', '{{ invoice.paid_amount }}', 'المتبقي:', '{{ invoice.remaining_amount }}']);
+            data.push([]);
+
+            // إضافة ملاحظات
+            data.push(['ملاحظات:']);
+            data.push(['{{ invoice.notes|default:"لا توجد ملاحظات" }}']);
+
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // تعيين اتجاه الورقة من اليمين إلى اليسار
+            ws['!dir'] = 'rtl';
+
+            // إنشاء مصنف عمل
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'فاتورة {{ invoice.number }}');
+
+            // تصدير المصنف
+            XLSX.writeFile(wb, 'فاتورة_{{ invoice.number }}.xlsx');
+        }
+    </script>
+</body>
+</html>

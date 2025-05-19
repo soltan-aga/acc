@@ -1,0 +1,199 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب | نظام إدارة المخازن والمحاسبة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 40px 0;
+        }
+        
+        .register-container {
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .register-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .register-header {
+            background-color: #4267B2;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .register-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+        }
+        
+        .register-title {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .register-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .register-body {
+            padding: 20px;
+        }
+        
+        .register-form .form-control {
+            height: 45px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #dddfe2;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+        }
+        
+        .register-form .form-control:focus {
+            border-color: #4267B2;
+            box-shadow: 0 0 0 2px rgba(66, 103, 178, 0.2);
+        }
+        
+        .register-form .form-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .register-btn {
+            background-color: #4267B2;
+            border: none;
+            color: white;
+            font-weight: 600;
+            height: 45px;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .register-btn:hover {
+            background-color: #365899;
+        }
+        
+        .register-footer {
+            background-color: #f7f9fa;
+            border-top: 1px solid #dddfe2;
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .register-footer a {
+            color: #4267B2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .password-rules {
+            font-size: 12px;
+            color: #65676b;
+            margin-top: 5px;
+            padding-right: 20px;
+        }
+        
+        .password-rules li {
+            margin-bottom: 3px;
+        }
+        
+        .alert {
+            border-radius: 5px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <img src="{% static 'img/logo.svg' %}" alt="شعار النظام" class="register-logo">
+                <h4 class="register-title">إنشاء حساب جديد</h4>
+                <p class="register-subtitle">أدخل بياناتك لإنشاء حساب جديد في النظام</p>
+            </div>
+            <div class="register-body">
+                <form method="post" class="register-form" action="{% url 'register' %}">
+                    {% csrf_token %}
+                    
+                    {% if error_message %}
+                        <div class="alert alert-danger">
+                            {{ error_message }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">اسم المستخدم</label>
+                            <input type="text" name="username" id="username" class="form-control" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">البريد الإلكتروني</label>
+                            <input type="email" name="email" id="email" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password1" class="form-label">كلمة المرور</label>
+                            <input type="password" name="password1" id="password1" class="form-control" required>
+                            <div class="password-rules">
+                                <ul>
+                                    <li>يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل.</li>
+                                    <li>يجب ألا تكون كلمة المرور شائعة جدًا.</li>
+                                    <li>يجب ألا تكون كلمة المرور مكونة من أرقام فقط.</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="password2" class="form-label">تأكيد كلمة المرور</label>
+                            <input type="password" name="password2" id="password2" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="submit" class="register-btn">إنشاء حساب</button>
+                    </div>
+                </form>
+            </div>
+            <div class="register-footer">
+                لديك حساب بالفعل؟ <a href="{% url 'login' %}">تسجيل الدخول</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

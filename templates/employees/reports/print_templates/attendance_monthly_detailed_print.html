@@ -1,0 +1,472 @@
+{% load employee_tags %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الحضور الشهري التفصيلي</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 10px;
+            background-color: white;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .report-date {
+            font-size: 14pt;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 8pt;
+            table-layout: fixed;
+        }
+
+        table th, table td {
+            border: 1px solid #000;
+            padding: 2px;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .day-header {
+            width: 16px;
+            min-width: 16px;
+            max-width: 16px;
+            font-size: 7pt;
+        }
+
+        .employee-name-col {
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
+            font-size: 8pt;
+        }
+
+        .summary-col {
+            width: 25px;
+            min-width: 25px;
+            max-width: 25px;
+        }
+
+        .employee-name {
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .attendance-present {
+            background-color: #d4edda;
+        }
+
+        .attendance-absent {
+            background-color: #f8d7da;
+        }
+
+        .attendance-excused {
+            background-color: #fff3cd;
+        }
+
+        .attendance-none {
+            background-color: #f8f9fa;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .stats-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 10px;
+            border: 1px solid #000;
+        }
+
+        .stats-present {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .stats-absent {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .stats-excused {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .summary-row {
+            font-weight: bold;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-left: 5px;
+            border: 1px solid #000;
+        }
+
+        .legend-present {
+            background-color: #d4edda;
+        }
+
+        .legend-absent {
+            background-color: #f8d7da;
+        }
+
+        .legend-excused {
+            background-color: #fff3cd;
+        }
+
+        .legend-none {
+            background-color: #f8f9fa;
+        }
+
+        @media print {
+            body {
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 8pt !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .container {
+                width: 100% !important;
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            table {
+                page-break-inside: auto;
+                table-layout: fixed !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                font-size: 7pt !important;
+                transform: scale(0.95) !important;
+                transform-origin: top left !important;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+
+            .day-header {
+                width: 14px !important;
+                min-width: 14px !important;
+                max-width: 14px !important;
+                font-size: 6pt !important;
+                padding: 1px !important;
+            }
+
+            .employee-name-col {
+                width: 80px !important;
+                min-width: 80px !important;
+                max-width: 80px !important;
+                font-size: 7pt !important;
+            }
+
+            .summary-col {
+                width: 20px !important;
+                min-width: 20px !important;
+                max-width: 20px !important;
+                font-size: 7pt !important;
+            }
+
+            table th, table td {
+                padding: 1px !important;
+                font-size: 7pt !important;
+                overflow: hidden !important;
+                white-space: nowrap !important;
+                text-overflow: ellipsis !important;
+            }
+
+            /* تحسين ألوان الخلايا عند الطباعة */
+            .attendance-present {
+                background-color: #d4edda !important;
+            }
+
+            .attendance-absent {
+                background-color: #f8d7da !important;
+            }
+
+            .attendance-excused {
+                background-color: #fff3cd !important;
+            }
+
+            .attendance-none {
+                background-color: #f8f9fa !important;
+            }
+
+            /* تحسين عرض الصفحة */
+            @page {
+                size: landscape !important;
+                margin: 0.5cm !important;
+                scale: 90% !important;
+            }
+
+            /* تصغير المسافات */
+            .report-header {
+                margin-bottom: 5px !important;
+            }
+
+            .report-title {
+                margin-bottom: 5px !important;
+                font-size: 12pt !important;
+            }
+
+            .report-date {
+                margin-bottom: 5px !important;
+                font-size: 10pt !important;
+            }
+
+            .legend-container {
+                margin-bottom: 5px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="report-header">
+            <h1 class="report-title">تقرير الحضور الشهري التفصيلي</h1>
+            <h2 class="report-date">{{ month_name }} {{ year }}</h2>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color legend-present"></div>
+                <span>حاضر</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-absent"></div>
+                <span>غائب</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-excused"></div>
+                <span>غائب بعذر</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color legend-none"></div>
+                <span>لم يسجل</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" class="employee-name-col">الموظف</th>
+                    {% for day in days_in_month|get_range %}
+                    <th class="day-header">{{ day }}</th>
+                    {% endfor %}
+                    <th rowspan="2" class="summary-col">حاضر</th>
+                    <th rowspan="2" class="summary-col">غائب</th>
+                    <th rowspan="2" class="summary-col">بعذر</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee_data in employees_data %}
+                <tr>
+                    <td class="employee-name">{{ employee_data.employee.name }}</td>
+                    {% for day_data in employee_data.days %}
+                    <td class="
+                        {% if day_data.attendance %}
+                            {% if day_data.attendance.status == 'present' %}
+                                attendance-present
+                            {% elif day_data.attendance.status == 'absent' %}
+                                attendance-absent
+                            {% elif day_data.attendance.status == 'excused' %}
+                                attendance-excused
+                            {% endif %}
+                        {% else %}
+                            attendance-none
+                        {% endif %}
+                    ">
+                        {% if day_data.attendance %}
+                            {% if day_data.attendance.status == 'present' %}
+                                ✓
+                            {% elif day_data.attendance.status == 'absent' %}
+                                ✗
+                            {% elif day_data.attendance.status == 'excused' %}
+                                !
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td>{{ employee_data.present_count }}</td>
+                    <td>{{ employee_data.absent_count }}</td>
+                    <td>{{ employee_data.excused_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ days_in_month|add:4 }}" class="text-center">لا يوجد موظفين</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-primary">طباعة</button>
+            <button onclick="exportToPDF()" class="btn btn-danger">تصدير PDF</button>
+            <button onclick="exportToExcel()" class="btn btn-success">تصدير إكسل</button>
+            <button onclick="window.close()" class="btn btn-secondary">إغلاق</button>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+        <script>
+            // تصدير إلى PDF
+            function exportToPDF() {
+                const { jsPDF } = window.jspdf;
+
+                // إخفاء أزرار الطباعة والتصدير
+                const printButtons = document.querySelector('.no-print');
+                printButtons.style.display = 'none';
+
+                // إنشاء PDF بتوجيه أفقي
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a3'
+                });
+
+                // تحويل المحتوى إلى صورة
+                html2canvas(document.querySelector('.container'), {
+                    scale: 2.5,
+                    useCORS: true,
+                    logging: false,
+                    width: document.querySelector('.container').offsetWidth,
+                    height: document.querySelector('.container').offsetHeight,
+                    windowWidth: document.querySelector('.container').scrollWidth,
+                    windowHeight: document.querySelector('.container').scrollHeight
+                }).then(canvas => {
+                    // إضافة الصورة إلى PDF
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = doc.internal.pageSize.getWidth();
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                    doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+                    // تنزيل الملف
+                    doc.save('تقرير_الحضور_الشهري_التفصيلي_{{ month_name }}_{{ year }}.pdf');
+
+                    // إظهار أزرار الطباعة والتصدير مرة أخرى
+                    printButtons.style.display = 'block';
+                });
+            }
+
+            // تصدير إلى إكسل
+            function exportToExcel() {
+                // إنشاء مصفوفة لبيانات الإكسل
+                const data = [];
+
+                // إضافة عنوان التقرير
+                data.push(['تقرير الحضور الشهري التفصيلي - {{ month_name }} {{ year }}']);
+                data.push([]);
+
+                // الحصول على جدول البيانات
+                const table = document.querySelector('table');
+                const rows = table.querySelectorAll('tr');
+
+                // إضافة رأس الجدول
+                const headerRow = [];
+                const headerCells = rows[0].querySelectorAll('th');
+                headerCells.forEach(cell => {
+                    headerRow.push(cell.textContent.trim());
+                });
+                data.push(headerRow);
+
+                // إضافة بيانات الجدول
+                for (let i = 2; i < rows.length; i++) {
+                    const rowData = [];
+                    const cells = rows[i].querySelectorAll('td');
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent.trim());
+                    });
+                    data.push(rowData);
+                }
+
+                // إنشاء ورقة عمل
+                const ws = XLSX.utils.aoa_to_sheet(data);
+
+                // تعيين اتجاه من اليمين إلى اليسار
+                ws['!dir'] = 'rtl';
+
+                // إنشاء مصنف عمل
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'تقرير الحضور');
+
+                // تنزيل الملف
+                XLSX.writeFile(wb, 'تقرير_الحضور_الشهري_التفصيلي_{{ month_name }}_{{ year }}.xlsx');
+            }
+        </script>
+    </div>
+</body>
+</html>

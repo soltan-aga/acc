@@ -1,0 +1,85 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة مخزون المطهرات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-flask me-2"></i>قائمة مخزون المطهرات</h4>
+                <div>
+                    <a href="{% url 'hatchery:disinfectant_inventory_create' %}" class="btn btn-light">
+                        <i class="fas fa-plus me-1"></i> إضافة مطهر جديد
+                    </a>
+                    <a href="{% url 'hatchery:disinfectant_transaction_create' %}" class="btn btn-light">
+                        <i class="fas fa-exchange-alt me-1"></i> تسجيل حركة
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if inventory_items %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>التصنيف</th>
+                                <th>اسم المطهر</th>
+                                <th>المورد</th>
+                                <th>وحدة القياس</th>
+                                <th>المخزون الحالي</th>
+                                <th>الحد الأدنى</th>
+                                <th>حالة المخزون</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory_items %}
+                            <tr>
+                                <td>{{ item.category.name }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.supplier|default:"-" }}</td>
+                                <td>{{ item.unit }}</td>
+                                <td>{{ item.current_stock }}</td>
+                                <td>{{ item.minimum_stock }}</td>
+                                <td>
+                                    {% if item.is_low_stock %}
+                                    <span class="badge bg-danger">منخفض</span>
+                                    {% else %}
+                                    <span class="badge bg-success">جيد</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'hatchery:disinfectant_inventory_detail' item.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:disinfectant_inventory_update' item.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:disinfectant_inventory_delete' item.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'hatchery:disinfectant_transaction_create_specific' item.id 'receive' %}">استلام</a></li>
+                                            <li><a class="dropdown-item" href="{% url 'hatchery:disinfectant_transaction_create_specific' item.id 'dispense' %}">صرف</a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مطهرات مسجلة في المخزون حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

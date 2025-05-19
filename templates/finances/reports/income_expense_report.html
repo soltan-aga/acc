@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load finance_extras %}
+
+{% block title %}تقرير الإيرادات والمصروفات{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="h3 mb-4">تقرير الإيرادات والمصروفات</h1>
+    <p class="text-muted">عرض تفصيلي للإيرادات والمصروفات وتحليلها حسب الأقسام</p>
+
+    <!-- نموذج البحث والتصفية -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">خيارات التصفية</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label for="from_date" class="form-label">من تاريخ</label>
+                    <input type="date" class="form-control" id="from_date" name="from_date" value="{{ from_date|default:'' }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="to_date" class="form-label">إلى تاريخ</label>
+                    <input type="date" class="form-control" id="to_date" name="to_date" value="{{ to_date|default:'' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="income_category" class="form-label">قسم الإيرادات</label>
+                    <select class="form-select" id="income_category" name="income_category">
+                        <option value="">-- جميع الأقسام --</option>
+                        {% for category in income_categories %}
+                            <option value="{{ category.id }}" {% if selected_income_category == category.id|stringformat:"i" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="expense_category" class="form-label">قسم المصروفات</label>
+                    <select class="form-select" id="expense_category" name="expense_category">
+                        <option value="">-- جميع الأقسام --</option>
+                        {% for category in expense_categories %}
+                            <option value="{{ category.id }}" {% if selected_expense_category == category.id|stringformat:"i" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="safe" class="form-label">الخزنة</label>
+                    <select class="form-select" id="safe" name="safe">
+                        <option value="">-- جميع الخزن --</option>
+                        {% for safe in safes %}
+                            <option value="{{ safe.id }}" {% if selected_safe == safe.id|stringformat:"i" %}selected{% endif %}>{{ safe.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label for="q" class="form-label">بحث</label>
+                    <input type="text" class="form-control" id="q" name="q" placeholder="ابحث عن رقم المستند، الدافع/المستفيد، الملاحظات..." value="{{ search_query|default:'' }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> بحث
+                    </button>
+                    <a href="{% url 'income_expense_report' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-redo"></i> إعادة تعيين
+                    </a>
+                    <a href="{% url 'income_expense_print' %}?{{ request.GET.urlencode }}" class="btn btn-success me-2" target="_blank">
+                        <i class="fas fa-print"></i> طباعة التقرير
+                    </a>
+                    <div class="btn-group">
+                        <a href="{% url 'income_expense_print' %}?{{ request.GET.urlencode }}&export=excel" class="btn btn-info" target="_blank">
+                            <i class="fas fa-file-excel"></i> تصدير Excel
+                        </a>
+                        <a href="{% url 'income_expense_print' %}?{{ request.GET.urlencode }}&export=pdf" class="btn btn-danger" target="_blank">
+                            <i class="fas fa-file-pdf"></i> تصدير PDF
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ملخص الإجماليات -->
+    <div class="row mb-4">
+        <div class="col-md-12 mb-3 text-end">
+            <div class="btn-group">
+                <a href="{% url 'income_expense_print' %}?{{ request.GET.urlencode }}&export=excel" class="btn btn-info btn-sm">
+                    <i class="fas fa-file-excel"></i> تصدير Excel
+                </a>
+                <a href="{% url 'income_expense_print' %}?{{ request.GET.urlencode }}&export=pdf" class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf"></i> تصدير PDF
+                </a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">إجمالي الإيرادات</h5>
+                    <h3 class="mb-0">{{ total_income }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">إجمالي المصروفات</h5>
+                    <h3 class="mb-0">{{ total_expense }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card {% if net_total >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">صافي الربح/الخسارة</h5>
+                    <h3 class="mb-0">{{ net_total }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحليل الإيرادات والمصروفات حسب القسم -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">الإيرادات حسب القسم</h5>
+                </div>
+                <div class="card-body">
+                    {% if income_by_category %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>القسم</th>
+                                        <th class="text-end">المبلغ</th>
+                                        <th class="text-end">النسبة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in income_by_category %}
+                                        <tr>
+                                            <td>{{ item.category__name }}</td>
+                                            <td class="text-end">{{ item.total }}</td>
+                                            <td class="text-end">{{ item.total|div:total_income|mul:100|floatformat:1 }}%</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-dark">
+                                    <tr>
+                                        <th>الإجمالي</th>
+                                        <th class="text-end">{{ total_income }}</th>
+                                        <th class="text-end">100%</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد إيرادات مطابقة لمعايير البحث.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">المصروفات حسب القسم</h5>
+                </div>
+                <div class="card-body">
+                    {% if expense_by_category %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>القسم</th>
+                                        <th class="text-end">المبلغ</th>
+                                        <th class="text-end">النسبة</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in expense_by_category %}
+                                        <tr>
+                                            <td>{{ item.category__name }}</td>
+                                            <td class="text-end">{{ item.total }}</td>
+                                            <td class="text-end">{{ item.total|div:total_expense|mul:100|floatformat:1 }}%</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-dark">
+                                    <tr>
+                                        <th>الإجمالي</th>
+                                        <th class="text-end">{{ total_expense }}</th>
+                                        <th class="text-end">100%</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد مصروفات مطابقة لمعايير البحث.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تفاصيل الإيرادات -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">تفاصيل الإيرادات</h5>
+        </div>
+        <div class="card-body">
+            {% if incomes %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>التاريخ</th>
+                                <th>رقم المستند</th>
+                                <th>القسم</th>
+                                <th>الدافع</th>
+                                <th>الخزنة</th>
+                                <th class="text-end">المبلغ</th>
+                                <th>الملاحظات</th>
+                                <th class="no-print">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for income in incomes %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ income.date|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ income.number }}</td>
+                                    <td>{{ income.category.name }}</td>
+                                    <td>{{ income.payer }}</td>
+                                    <td>{{ income.safe.name }}</td>
+                                    <td class="text-end">{{ income.amount }}</td>
+                                    <td>{{ income.notes|truncatechars:30 }}</td>
+                                    <td class="no-print">
+                                        <a href="{% url 'income_detail' income.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <th colspan="6" class="text-end">الإجمالي</th>
+                                <th class="text-end">{{ total_income }}</th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد إيرادات مطابقة لمعايير البحث.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- تفاصيل المصروفات -->
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h5 class="card-title mb-0">تفاصيل المصروفات</h5>
+        </div>
+        <div class="card-body">
+            {% if expenses %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>التاريخ</th>
+                                <th>رقم المستند</th>
+                                <th>القسم</th>
+                                <th>المستفيد</th>
+                                <th>الخزنة</th>
+                                <th class="text-end">المبلغ</th>
+                                <th>الملاحظات</th>
+                                <th class="no-print">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ expense.date|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ expense.number }}</td>
+                                    <td>{{ expense.category.name }}</td>
+                                    <td>{{ expense.payee }}</td>
+                                    <td>{{ expense.safe.name }}</td>
+                                    <td class="text-end">{{ expense.amount }}</td>
+                                    <td>{{ expense.notes|truncatechars:30 }}</td>
+                                    <td class="no-print">
+                                        <a href="{% url 'expense_detail' expense.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-dark">
+                            <tr>
+                                <th colspan="6" class="text-end">الإجمالي</th>
+                                <th class="text-end">{{ total_expense }}</th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    لا توجد مصروفات مطابقة لمعايير البحث.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تنسيق التاريخ
+        $('#from_date, #to_date').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true,
+            rtl: true
+        });
+    });
+</script>
+{% endblock %}

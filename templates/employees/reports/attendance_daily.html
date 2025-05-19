@@ -1,0 +1,305 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}تقرير الحضور اليومي{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 0;
+            background-color: white !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .print-only {
+            display: block !important;
+        }
+
+        /* إخفاء عناصر الموقع عند الطباعة */
+        nav, footer, .navbar, .sidebar, .topbar, #accordionSidebar, #wrapper, #content-wrapper, #content {
+            display: none !important;
+        }
+
+        /* تنسيق الصفحة المطبوعة */
+        .container-fluid {
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .card-header {
+            background-color: transparent !important;
+            border-bottom: 1px solid #000 !important;
+            padding: 0.5rem 0 !important;
+        }
+
+        .card-body {
+            padding: 0.5rem 0 !important;
+        }
+
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .table th, .table td {
+            border: 1px solid #000 !important;
+            padding: 5px !important;
+            text-align: center !important;
+        }
+
+        .badge {
+            border: 1px solid #000 !important;
+            padding: 2px 5px !important;
+        }
+
+        .bg-success {
+            background-color: #d4edda !important;
+            color: #000 !important;
+        }
+
+        .bg-danger {
+            background-color: #f8d7da !important;
+            color: #000 !important;
+        }
+
+        .bg-warning {
+            background-color: #fff3cd !important;
+            color: #000 !important;
+        }
+
+        .bg-secondary {
+            background-color: #e2e3e5 !important;
+            color: #000 !important;
+        }
+
+        /* تنسيق إحصائيات الحضور للطباعة */
+        .stats-badge {
+            display: inline-block !important;
+            padding: 8px 16px !important;
+            border-radius: 6px !important;
+            font-size: 16pt !important;
+            font-weight: bold !important;
+            margin: 0 10px !important;
+            border: 1px solid #000 !important;
+        }
+
+        .stats-present {
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+
+        .stats-absent {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+
+        .stats-excused {
+            background-color: #ffc107 !important;
+            color: black !important;
+        }
+
+        /* تنسيق رأس الصفحة المطبوعة */
+        .print-header {
+            text-align: center !important;
+            margin-bottom: 10px !important;
+            padding-bottom: 5px !important;
+        }
+
+        .report-title {
+            font-size: 18pt !important;
+            font-weight: bold !important;
+            margin-bottom: 5px !important;
+        }
+
+        .report-date {
+            font-size: 14pt !important;
+            margin-bottom: 15px !important;
+        }
+
+        /* إزالة الهوامش والحدود من العناصر المحيطة */
+        #page-top, #wrapper, #content-wrapper, #content {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: white !important;
+        }
+    }
+
+    .print-only {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تقرير الحضور اليومي</h1>
+        <div>
+            <a href="?date={{ selected_date|date:'Y-m-d' }}&print=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة التقرير
+            </a>
+            <button onclick="window.print()" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة الصفحة الحالية
+            </button>
+        </div>
+    </div>
+
+    <!-- Print Header -->
+    <div class="print-only print-header mb-4">
+        <h2 class="report-title">تقرير الحضور اليومي</h2>
+        <h3 class="report-date">{{ selected_date|date:"Y-m-d" }}</h3>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="card shadow mb-4 no-print">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اختر التاريخ</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="date" name="date" class="form-control" value="{{ selected_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="row mb-4">
+        <!-- للعرض العادي (غير الطباعة) -->
+        <div class="col-xl-4 col-md-6 mb-4 no-print">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                الحاضرين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ present_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4 no-print">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                الغائبين</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ absent_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4 no-print">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                الغائبين بعذر</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ excused_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- للطباعة فقط - عرض أفقي -->
+        <div class="col-12 print-only mb-3">
+            <div class="d-flex justify-content-around align-items-center">
+                <div class="text-center mx-3">
+                    <span class="stats-badge stats-present">الحاضرين: {{ present_count }}</span>
+                </div>
+                <div class="text-center mx-3">
+                    <span class="stats-badge stats-absent">الغائبين: {{ absent_count }}</span>
+                </div>
+                <div class="text-center mx-3">
+                    <span class="stats-badge stats-excused">الغائبين بعذر: {{ excused_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">سجل الحضور ليوم {{ selected_date|date:"Y-m-d" }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الحالة</th>
+                            <th>وقت الحضور</th>
+                            <th>وقت الانصراف</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in employees_attendance %}
+                        <tr>
+                            <td>{{ item.employee.name }}</td>
+                            <td>
+                                {% if item.attendance %}
+                                    {% if item.attendance.status == 'present' %}
+                                    <span class="badge bg-success">حاضر</span>
+                                    {% elif item.attendance.status == 'absent' %}
+                                    <span class="badge bg-danger">غائب</span>
+                                    {% elif item.attendance.status == 'excused' %}
+                                    <span class="badge bg-warning">غائب بعذر</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">لم يسجل</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.attendance.check_in|time|default:"-" }}</td>
+                            <td>{{ item.attendance.check_out|time|default:"-" }}</td>
+                            <td>{{ item.attendance.notes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">لا يوجد موظفين</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- لا يوجد تذييل للطباعة -->
+</div>
+{% endblock %}

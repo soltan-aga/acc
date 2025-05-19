@@ -1,0 +1,167 @@
+{% extends "employees/base.html" %}
+{% load static %}
+{% load employee_tags %}
+
+{% block title %}تقرير الحضور الشهري{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .print-only {
+            display: block !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background-color: transparent !important;
+            border-bottom: 1px solid #000 !important;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+        .container-fluid {
+            width: 100%;
+            padding: 0;
+        }
+        .badge {
+            border: 1px solid #000;
+            padding: 2px 5px;
+        }
+        .bg-success {
+            background-color: #d4edda !important;
+            color: #000 !important;
+        }
+        .bg-danger {
+            background-color: #f8d7da !important;
+            color: #000 !important;
+        }
+        .bg-warning {
+            background-color: #fff3cd !important;
+            color: #000 !important;
+        }
+    }
+    .print-only {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تقرير الحضور الشهري</h1>
+        <div>
+            <a href="?year={{ year }}&month={{ month }}&print=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة الملخص
+            </a>
+            <a href="?year={{ year }}&month={{ month }}&print=1&detailed=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة التفاصيل
+            </a>
+            <button onclick="window.print()" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة الصفحة الحالية
+            </button>
+        </div>
+    </div>
+
+    <!-- Print Header -->
+    <div class="print-only text-center mb-4">
+        <h2>تقرير الحضور الشهري</h2>
+        <h3>{{ month_name }} {{ year }}</h3>
+    </div>
+
+    <!-- Month Selection -->
+    <div class="card shadow mb-4 no-print">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اختر الشهر</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <select name="month" class="form-select">
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if month == i|add:"0" %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="year" class="form-select">
+                        {% for i in "012345"|make_list %}
+                        {% with offset=i|add:"-5" %}
+                        <option value="{{ year|add:offset }}" {% if year == year|add:offset %}selected{% endif %}>{{ year|add:offset }}</option>
+                        {% endwith %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Monthly Attendance Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">ملخص الحضور لشهر {{ month_name }} {{ year }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>أيام الحضور</th>
+                            <th>أيام الغياب</th>
+                            <th>أيام الغياب بعذر</th>
+                            <th>إجمالي الأيام</th>
+                            <th>نسبة الحضور</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in report_data %}
+                        <tr>
+                            <td>{{ item.employee.name }}</td>
+                            <td>{{ item.present_count }}</td>
+                            <td>{{ item.absent_count }}</td>
+                            <td>{{ item.excused_count }}</td>
+                            <td>{{ item.total_days }}</td>
+                            <td>
+                                {% if item.total_days > 0 %}
+                                {{ item.present_count|floatformat:0 }}%
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">لا يوجد بيانات</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Footer -->
+    <div class="print-only text-center mt-4">
+        <p>تم إنشاء هذا التقرير في: {{ now|date:"Y-m-d H:i" }}</p>
+    </div>
+</div>
+{% endblock %}

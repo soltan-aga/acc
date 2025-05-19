@@ -1,0 +1,191 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل الراتب | {{ salary.employee.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تفاصيل راتب: {{ salary.employee.name }}</h1>
+        <div>
+            <a href="{% url 'employees:salary_edit' salary.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            
+            {% if not salary.is_posted %}
+            <a href="{% url 'employees:salary_post' salary.pk %}" class="btn btn-success">
+                <i class="fas fa-check"></i> ترحيل
+            </a>
+            {% else %}
+            <a href="{% url 'employees:salary_unpost' salary.pk %}" class="btn btn-danger">
+                <i class="fas fa-undo"></i> إلغاء الترحيل
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'employees:salary_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+            
+            <a href="#" onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- بيانات الراتب الأساسية -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات الراتب</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">الموظف</th>
+                                    <td>
+                                        <a href="{% url 'employees:employee_detail' salary.employee.pk %}">
+                                            {{ salary.employee.name }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>الشهر/السنة</th>
+                                    <td>{{ salary.month }}/{{ salary.year }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الراتب الأساسي</th>
+                                    <td>{{ salary.base_salary }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الخصومات</th>
+                                    <td>{{ salary.deductions }}</td>
+                                </tr>
+                                <tr>
+                                    <th>خصم السلف</th>
+                                    <td>{{ salary.loans_deduction }}</td>
+                                </tr>
+                                <tr>
+                                    <th>صافي الراتب</th>
+                                    <td>{{ salary.net_salary }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الملاحظات</th>
+                                    <td>{{ salary.notes|default:"-"|linebreaks }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- حالة الراتب -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">حالة الراتب</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">حالة الصرف</th>
+                                    <td>
+                                        {% if salary.is_paid %}
+                                        <span class="badge bg-success">تم الصرف</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">لم يتم الصرف</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if salary.is_paid %}
+                                <tr>
+                                    <th>تاريخ الصرف</th>
+                                    <td>{{ salary.payment_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>حالة الترحيل</th>
+                                    <td>
+                                        {% if salary.is_posted %}
+                                        <span class="badge bg-success">مرحل</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">غير مرحل</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>الخزنة</th>
+                                    <td>{{ salary.safe.name|default:"-" }}</td>
+                                </tr>
+                                {% if salary.is_posted and salary.transaction %}
+                                <tr>
+                                    <th>رقم مرجع الحركة</th>
+                                    <td>{{ salary.transaction.reference_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الترحيل</th>
+                                    <td>{{ salary.transaction.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if salary.is_posted and salary.transaction %}
+    <!-- تفاصيل حركة الخزنة -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تفاصيل حركة الخزنة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>الخزنة</th>
+                                    <th>نوع الحركة</th>
+                                    <th>المبلغ</th>
+                                    <th>الرصيد قبل</th>
+                                    <th>الرصيد بعد</th>
+                                    <th>الوصف</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ salary.transaction.safe.name }}</td>
+                                    <td>
+                                        {% if salary.transaction.transaction_type == 'deposit' %}
+                                        <span class="badge bg-success">إيداع</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">سحب</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ salary.transaction.amount }}</td>
+                                    <td>{{ salary.transaction.balance_before }}</td>
+                                    <td>{{ salary.transaction.balance_after }}</td>
+                                    <td>{{ salary.transaction.description }}</td>
+                                    <td>{{ salary.transaction.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

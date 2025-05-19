@@ -1,0 +1,77 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة المطهرات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-flask me-2"></i>قائمة المطهرات</h4>
+                <a href="{% url 'inventory:disinfectant_create' %}" class="btn btn-light">
+                    <i class="fas fa-plus me-1"></i> إضافة مطهر جديد
+                </a>
+            </div>
+            <div class="card-body">
+                {% if disinfectants %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم المطهر</th>
+                                <th>التصنيف</th>
+                                <th>وحدة القياس</th>
+                                <th>الرصيد الحالي</th>
+                                <th>الحد الأدنى</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disinfectant in disinfectants %}
+                            <tr>
+                                <td>{{ disinfectant.name }}</td>
+                                <td>{{ disinfectant.category }}</td>
+                                <td>{{ disinfectant.unit }}</td>
+                                <td>{{ disinfectant.current_stock }} {{ disinfectant.unit }}</td>
+                                <td>{{ disinfectant.minimum_stock }} {{ disinfectant.unit }}</td>
+                                <td>
+                                    {% if disinfectant.stock_status == "نفذ" %}
+                                    <span class="status-out">نفذ</span>
+                                    {% elif disinfectant.stock_status == "منخفض" %}
+                                    <span class="status-low">منخفض</span>
+                                    {% else %}
+                                    <span class="status-available">طبيعي</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'inventory:disinfectant_detail' disinfectant.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:disinfectant_update' disinfectant.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:disinfectant_delete' disinfectant.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:received_create' disinfectant.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-plus"></i> إضافة وارد
+                                    </a>
+                                    <a href="{% url 'inventory:issued_create' disinfectant.id %}" class="btn btn-sm btn-secondary">
+                                        <i class="fas fa-minus"></i> إضافة منصرف
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مطهرات مسجلة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

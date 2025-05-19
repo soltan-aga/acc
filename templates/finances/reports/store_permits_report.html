@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ title }}</h5>
+                    <div class="btn-group">
+                        <a href="{% url 'store_permits_report_print' %}?{{ request.GET.urlencode }}" class="btn btn-info" target="_blank">
+                            <i class="fas fa-print"></i> طباعة التقرير
+                        </a>
+                        <a href="{% url 'store_permit_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-list"></i> قائمة الأذونات
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- فلاتر البحث -->
+                    {% include 'partials/_search_filters.html' with filter_title="فلاتر تقرير بنود الأذونات" filters=permit_filters date_filter=True search_placeholder="رقم الإذن، الشخص، المنتج..." %}
+
+                    <!-- جدول بنود الأذونات -->
+                    <div class="table-responsive mt-4">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>رقم الإذن</th>
+                                    <th>نوع الإذن</th>
+                                    <th>التاريخ</th>
+                                    <th>المخزن</th>
+                                    <th>الشخص</th>
+                                    {% if settings.show_driver_in_permit_report %}
+                                    <th>السائق</th>
+                                    {% endif %}
+                                    {% if settings.show_representative_in_permit_report %}
+                                    <th>المندوب</th>
+                                    {% endif %}
+                                    <th>المنتج</th>
+                                    <th>الوحدة</th>
+                                    <th>الكمية</th>
+                                    <th>ملاحظات</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in permit_items %}
+                                <tr>
+                                    <td>{{ item.permit.number }}</td>
+                                    <td>
+                                        {% if item.permit.permit_type == 'issue' %}
+                                            <span class="badge bg-danger">إذن صرف</span>
+                                        {% else %}
+                                            <span class="badge bg-success">إذن استلام</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.permit.date|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ item.permit.store.name }}</td>
+                                    <td>{{ item.permit.person_name }}</td>
+                                    {% if settings.show_driver_in_permit_report %}
+                                    <td>{{ item.permit.driver.name|default:"-" }}</td>
+                                    {% endif %}
+                                    {% if settings.show_representative_in_permit_report %}
+                                    <td>{{ item.permit.representative.name|default:"-" }}</td>
+                                    {% endif %}
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.product_unit.unit.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.notes|default:"-" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'store_permit_detail' item.permit.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'store_permit_print' item.permit.id %}" class="btn btn-sm btn-secondary" target="_blank">
+                                                <i class="fas fa-print"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="{% if settings.show_driver_in_permit_report and settings.show_representative_in_permit_report %}12{% elif settings.show_driver_in_permit_report or settings.show_representative_in_permit_report %}11{% else %}10{% endif %}" class="text-center">لا توجد بنود أذونات مخزنية تطابق معايير البحث</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

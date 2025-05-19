@@ -1,0 +1,130 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.id %}
+    تعديل حركة مطهر
+    {% else %}
+        {% if transaction_type == 'receive' %}
+        تسجيل استلام مطهر
+        {% elif transaction_type == 'dispense' %}
+        تسجيل صرف مطهر
+        {% else %}
+        تسجيل حركة مطهر جديدة
+        {% endif %}
+    {% endif %}
+    - نظام إدارة معامل التفريخ
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    {% if form.instance.id %}
+                    تعديل حركة مطهر
+                    {% else %}
+                        {% if transaction_type == 'receive' %}
+                        تسجيل استلام مطهر
+                        {% elif transaction_type == 'dispense' %}
+                        تسجيل صرف مطهر
+                        {% else %}
+                        تسجيل حركة مطهر جديدة
+                        {% endif %}
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.disinfectant.id_for_label }}" class="form-label">{{ form.disinfectant.label }}</label>
+                        {{ form.disinfectant }}
+                        {% if form.disinfectant.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.disinfectant.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.transaction_type.id_for_label }}" class="form-label">{{ form.transaction_type.label }}</label>
+                        {{ form.transaction_type }}
+                        {% if form.transaction_type.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.transaction_type.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.transaction_date.id_for_label }}" class="form-label">{{ form.transaction_date.label }}</label>
+                        {{ form.transaction_date }}
+                        {% if form.transaction_date.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.transaction_date.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label">{{ form.quantity.label }}</label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.quantity.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.notes.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        {% if disinfectant %}
+                        <a href="{% url 'hatchery:disinfectant_inventory_detail' disinfectant.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> رجوع
+                        </a>
+                        {% else %}
+                        <a href="{% url 'hatchery:disinfectant_transaction_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> رجوع
+                        </a>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}حذف حركة مطهر - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-trash me-2"></i>حذف حركة مطهر</h4>
+            </div>
+            <div class="card-body">
+                <p class="alert alert-warning">
+                    هل أنت متأكد من رغبتك في حذف حركة المطهر "{{ transaction.disinfectant.name }}"؟
+                </p>
+                <p>
+                    <strong>تفاصيل الحركة:</strong>
+                </p>
+                <ul>
+                    <li>نوع الحركة: 
+                        {% if transaction.transaction_type == 'receive' %}
+                        استلام
+                        {% else %}
+                        صرف
+                        {% endif %}
+                    </li>
+                    <li>تاريخ الحركة: {{ transaction.transaction_date }}</li>
+                    <li>الكمية: {{ transaction.quantity }} {{ transaction.disinfectant.unit }}</li>
+                </ul>
+                <p class="alert alert-info">
+                    <strong>ملاحظة:</strong> سيتم تعديل المخزون الحالي للمطهر عند حذف هذه الحركة.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hatchery:disinfectant_transaction_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i> حذف
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

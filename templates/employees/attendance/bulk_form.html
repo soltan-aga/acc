@@ -1,0 +1,231 @@
+{% extends "employees/base.html" %}
+{% load static %}
+{% load employee_tags %}
+
+{% block title %}تسجيل الحضور الجماعي | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block extra_css %}
+<style>
+    .employee-row {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .employee-row:last-child {
+        border-bottom: none;
+    }
+    .employee-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    .status-present {
+        color: #28a745;
+    }
+    .status-absent {
+        color: #dc3545;
+    }
+    .status-excused {
+        color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تسجيل الحضور الجماعي</h1>
+        <div>
+            <a href="{% url 'employees:attendance_daily' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للحضور اليومي
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">تسجيل حضور جميع الموظفين</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="form-group mt-4">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="bulk_status" id="status_all_present" value="present" checked>
+                                <label class="form-check-label status-present" for="status_all_present">
+                                    <i class="fas fa-check-circle"></i> تعيين الكل كحاضر
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="bulk_status" id="status_all_absent" value="absent">
+                                <label class="form-check-label status-absent" for="status_all_absent">
+                                    <i class="fas fa-times-circle"></i> تعيين الكل كغائب
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="bulk_status" id="status_all_excused" value="excused">
+                                <label class="form-check-label status-excused" for="status_all_excused">
+                                    <i class="fas fa-exclamation-circle"></i> تعيين الكل كغائب بعذر
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="bulk_check_in">وقت الحضور للجميع</label>
+                            <input type="time" id="bulk_check_in" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="bulk_check_out">وقت الانصراف للجميع</label>
+                            <input type="time" id="bulk_check_out" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="mb-3">بيانات الموظفين</h5>
+
+                {% for field_name, field in form.fields.items %}
+                    {% if field_name != 'date' and field_name|slice:":7" == "status_" %}
+                        {% with employee_id=field_name|slice:"7:" %}
+                        <div class="employee-row">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="employee-name">{{ field.label }}</div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>الحالة</label>
+                                        {{ form|getitem:field_name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>وقت الحضور</label>
+                                        {% with check_in_field="check_in_"|add:employee_id %}
+                                            {{ form|getitem:check_in_field }}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>وقت الانصراف</label>
+                                        {% with check_out_field="check_out_"|add:employee_id %}
+                                            {{ form|getitem:check_out_field }}
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                    {% endif %}
+                {% endfor %}
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                    <a href="{% url 'employees:attendance_daily' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تحديث حالة جميع الموظفين
+        $('input[name="bulk_status"]').on('change', function() {
+            var status = $(this).val();
+            $('select[id^="id_status_"]').val(status);
+            updateTimeFields();
+        });
+
+        // تحديث وقت الحضور لجميع الموظفين
+        $('#bulk_check_in').on('change', function() {
+            var time = $(this).val();
+            if (time) {
+                $('input[id^="id_check_in_"]').val(time);
+            }
+        });
+
+        // تحديث وقت الانصراف لجميع الموظفين
+        $('#bulk_check_out').on('change', function() {
+            var time = $(this).val();
+            if (time) {
+                $('input[id^="id_check_out_"]').val(time);
+            }
+        });
+
+        // تحديث حالة حقول وقت الحضور والانصراف بناءً على الحالة المختارة
+        function updateTimeFields() {
+            $('select[id^="id_status_"]').each(function() {
+                var status = $(this).val();
+                var id = $(this).attr('id').replace('id_status_', '');
+
+                if (status === 'absent' || status === 'excused') {
+                    $('#id_check_in_' + id).prop('disabled', true).val('');
+                    $('#id_check_out_' + id).prop('disabled', true).val('');
+                } else {
+                    $('#id_check_in_' + id).prop('disabled', false);
+                    $('#id_check_out_' + id).prop('disabled', false);
+                }
+            });
+        }
+
+        // تحديث حقول الوقت عند تغيير الحالة لكل موظف
+        $('select[id^="id_status_"]').on('change', function() {
+            var status = $(this).val();
+            var id = $(this).attr('id').replace('id_status_', '');
+
+            if (status === 'absent' || status === 'excused') {
+                $('#id_check_in_' + id).prop('disabled', true).val('');
+                $('#id_check_out_' + id).prop('disabled', true).val('');
+            } else {
+                $('#id_check_in_' + id).prop('disabled', false);
+                $('#id_check_out_' + id).prop('disabled', false);
+            }
+        });
+
+        // تحديث حقول الوقت عند تحميل الصفحة
+        updateTimeFields();
+    });
+</script>
+{% endblock %}

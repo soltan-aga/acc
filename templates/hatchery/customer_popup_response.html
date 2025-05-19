@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تم إنشاء العميل بنجاح - نظام إدارة معامل التفريخ</title>
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        .success-message {
+            max-width: 500px;
+            margin: 50px auto;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-message">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>تم إنشاء العميل بنجاح</h3>
+        <p>تم إنشاء العميل "{{ customer.name }}" بنجاح.</p>
+        <p>سيتم إغلاق هذه النافذة تلقائيًا...</p>
+    </div>
+
+    <script>
+        // إرسال البيانات إلى النافذة الأصلية
+        window.opener.postMessage({
+            type: 'new_customer',
+            customer: {
+                id: {{ customer.id }},
+                name: "{{ customer.name }}"
+            }
+        }, '*');
+        
+        // إغلاق النافذة بعد ثانيتين
+        setTimeout(function() {
+            window.close();
+        }, 2000);
+    </script>
+</body>
+</html>

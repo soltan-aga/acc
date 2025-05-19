@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}تفاصيل الإذن المخزني{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        {% if permit.permit_type == 'issue' %}
+                            تفاصيل إذن صرف
+                        {% else %}
+                            تفاصيل إذن استلام
+                        {% endif %}
+                        - {{ permit.number }}
+                    </h3>
+                    <div class="card-tools">
+                        <div class="btn-group">
+                            <a href="{% url 'store_permit_edit' permit.id %}" class="btn btn-primary">
+                                <i class="fas fa-edit"></i> تعديل
+                            </a>
+                            <a href="{% url 'store_permit_delete' permit.id %}" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> حذف
+                            </a>
+                            {% if permit.is_posted %}
+                                <a href="{% url 'store_permit_unpost' permit.id %}" class="btn btn-warning">
+                                    <i class="fas fa-undo"></i> إلغاء الترحيل
+                                </a>
+                            {% else %}
+                                <a href="{% url 'store_permit_post' permit.id %}" class="btn btn-success">
+                                    <i class="fas fa-check"></i> ترحيل
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'store_permit_print' permit.id %}" class="btn btn-info" target="_blank">
+                                <i class="fas fa-print"></i> طباعة
+                            </a>
+                            <a href="{% url 'store_permit_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-list"></i> العودة للقائمة
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-primary">
+                                    <h3 class="card-title">بيانات الإذن</h3>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th style="width: 30%">رقم الإذن</th>
+                                            <td>{{ permit.number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>نوع الإذن</th>
+                                            <td>
+                                                {% if permit.permit_type == 'issue' %}
+                                                    <span class="badge badge-danger">إذن صرف</span>
+                                                {% else %}
+                                                    <span class="badge badge-success">إذن استلام</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <td>{{ permit.date|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>المخزن</th>
+                                            <td>{{ permit.store.name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>
+                                                {% if permit.permit_type == 'issue' %}
+                                                    المستلم
+                                                {% else %}
+                                                    المرسل
+                                                {% endif %}
+                                            </th>
+                                            <td>{{ permit.person_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>السائق</th>
+                                            <td>{{ permit.driver.name|default:"-" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>المندوب</th>
+                                            <td>{{ permit.representative.name|default:"-" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>الرقم المرجعي</th>
+                                            <td>{{ permit.reference_number|default:"-" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>حالة الترحيل</th>
+                                            <td>
+                                                {% if permit.is_posted %}
+                                                    <span class="badge badge-success">مرحل</span>
+                                                {% else %}
+                                                    <span class="badge badge-warning">غير مرحل</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>ملاحظات</th>
+                                            <td>{{ permit.notes|default:"-" }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success">
+                                    <h3 class="card-title">بنود الإذن</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>المنتج</th>
+                                                    <th>الوحدة</th>
+                                                    <th>الكمية</th>
+                                                    <th>ملاحظات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in permit.items.all %}
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td>{{ item.product.name }}</td>
+                                                    <td>{{ item.product_unit.unit.name }}</td>
+                                                    <td>{{ item.formatted_quantity }}</td>
+                                                    <td>{{ item.notes|default:"-" }}</td>
+                                                </tr>
+                                                {% empty %}
+                                                <tr>
+                                                    <td colspan="5" class="text-center">لا توجد بنود</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if permit.is_posted and permit.created_transactions.exists %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-info">
+                                    <h3 class="card-title">حركات المنتجات المرتبطة</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>المنتج</th>
+                                                    <th>التاريخ</th>
+                                                    <th>الكمية</th>
+                                                    <th>الوحدة</th>
+                                                    <th>نوع الحركة</th>
+                                                    <th>المخزن</th>
+                                                    <th>الوصف</th>
+                                                    <th>الرصيد قبل</th>
+                                                    <th>الرصيد بعد</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for transaction in permit.created_transactions.all %}
+                                                <tr>
+                                                    <td>{{ transaction.product.name }}</td>
+                                                    <td>{{ transaction.date|date:"Y-m-d H:i" }}</td>
+                                                    <td>{{ transaction.quantity|floatformat:3 }}</td>
+                                                    <td>{{ transaction.product_unit.unit.name }}</td>
+                                                    <td>{{ transaction.get_transaction_type_display }}</td>
+                                                    <td>{{ transaction.store.name }}</td>
+                                                    <td>{{ transaction.description }}</td>
+                                                    <td>{{ transaction.balance_before|floatformat:3 }}</td>
+                                                    <td>{{ transaction.balance_after|floatformat:3 }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

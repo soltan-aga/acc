@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load static %}
+{% load finance_extras %}
+
+{% block title %}تفاصيل الفاتورة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">تفاصيل الفاتورة #{{ invoice.number }}</h5>
+            <div>
+                <a href="{% url 'invoice_edit' invoice.id %}" class="btn btn-light btn-sm mx-1">
+                    <i class="fas fa-edit"></i> تعديل
+                </a>
+                <a href="{% url 'invoice_print' invoice.id %}" class="btn btn-light btn-sm mx-1" target="_blank">
+                    <i class="fas fa-print"></i> طباعة
+                </a>
+                <a href="{% url 'invoice_delete' invoice.id %}" class="btn btn-danger btn-sm mx-1">
+                    <i class="fas fa-trash"></i> حذف
+                </a>
+                {% if not invoice.is_posted %}
+                <a href="{% url 'invoice_post' invoice.id %}" class="btn btn-success btn-sm mx-1">
+                    <i class="fas fa-check"></i> ترحيل
+                </a>
+                {% else %}
+                <a href="{% url 'invoice_unpost' invoice.id %}" class="btn btn-warning btn-sm mx-1">
+                    <i class="fas fa-undo"></i> إلغاء الترحيل
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>رقم الفاتورة:</strong> {{ invoice.number }}</p>
+                    <p><strong>التاريخ:</strong> {{ invoice.date }}</p>
+                    <p><strong>نوع الفاتورة:</strong> {{ invoice.get_invoice_type_display }}</p>
+                    <p><strong>طريقة الدفع:</strong> {{ invoice.get_payment_type_display }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>العميل/المورد:</strong> {{ invoice.contact.name }}</p>
+                    <p><strong>المخزن:</strong> {{ invoice.store.name }}</p>
+                    <p><strong>الخزنة:</strong> {{ invoice.safe.name }}</p>
+                    <p><strong>حالة الترحيل:</strong>
+                        {% if invoice.is_posted %}
+                            <span class="badge bg-success">مرحلة</span>
+                        {% else %}
+                            <span class="badge bg-danger">غير مرحلة</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <h6 class="mt-4 mb-3">بنود الفاتورة</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>المنتج</th>
+                            <th>الوحدة</th>
+                            <th>الكمية</th>
+                            <th>السعر</th>
+                            <th>الخصم</th>
+                            <th>الضريبة</th>
+                            <th>الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if invoice_items %}
+                            {% for item in invoice_items %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.product_unit.unit.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.unit_price }}</td>
+                                <td>{{ item.discount_amount }}</td>
+                                <td>{{ item.tax_amount }}</td>
+                                <td>{{ item.net_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            {% for item in invoice.invoiceitem_set.all %}
+                            <tr>
+                                <td>{{ item.product.name }}</td>
+                                <td>{{ item.product_unit.unit.name }}</td>
+                                <td>{{ item.quantity }}</td>
+                                <td>{{ item.unit_price }}</td>
+                                <td>{{ item.discount_amount }}</td>
+                                <td>{{ item.tax_amount }}</td>
+                                <td>{{ item.net_price }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="6" class="text-end">الإجمالي:</th>
+                            <th>{{ invoice.total_amount }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" class="text-end">الخصم:</th>
+                            <th>{{ invoice.discount_amount }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" class="text-end">الضريبة:</th>
+                            <th>{{ invoice.tax_amount }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" class="text-end">الصافي:</th>
+                            <th>{{ invoice.net_amount }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" class="text-end">المدفوع:</th>
+                            <th>{{ invoice.paid_amount }}</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6" class="text-end">المتبقي:</th>
+                            <th>{{ invoice.remaining_amount }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            {% if invoice.notes %}
+            <div class="mt-4">
+                <h6>ملاحظات:</h6>
+                <p>{{ invoice.notes }}</p>
+            </div>
+            {% endif %}
+
+            <!-- حركات المالية والمخزنية المرتبطة بالفاتورة -->
+            <h6 class="mt-4 mb-3">الحركات المالية والمخزنية المرتبطة</h6>
+
+            <!-- حركات حساب العميل/المورد -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">حركات حساب العميل/المورد</h6>
+                </div>
+                <div class="card-body">
+                    {% if contact_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>نوع العملية</th>
+                                        <th>المبلغ</th>
+                                        <th>الوصف</th>
+                                        <th>الرصيد قبل</th>
+                                        <th>الرصيد بعد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in contact_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"Y-m-d H:i" }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if transaction.transaction_type == 'sale_invoice' %}bg-primary
+                                                {% elif transaction.transaction_type == 'purchase_invoice' %}bg-success
+                                                {% elif transaction.transaction_type == 'sale_return_invoice' %}bg-warning
+                                                {% elif transaction.transaction_type == 'purchase_return_invoice' %}bg-info
+                                                {% elif transaction.transaction_type == 'collection' %}bg-danger
+                                                {% elif transaction.transaction_type == 'payment' %}bg-secondary
+                                                {% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td class="{% if transaction.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ transaction.amount|floatformat:2 }}
+                                        </td>
+                                        <td>{{ transaction.description }}</td>
+                                        <td>{{ transaction.balance_before|floatformat:2 }}</td>
+                                        <td>{{ transaction.balance_after|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">لا توجد حركات حساب مرتبطة بهذه الفاتورة</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- حركات الخزنة -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">حركات الخزنة</h6>
+                </div>
+                <div class="card-body">
+                    {% if safe_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>الخزنة</th>
+                                        <th>نوع العملية</th>
+                                        <th>المبلغ</th>
+                                        <th>الوصف</th>
+                                        <th>الرصيد قبل</th>
+                                        <th>الرصيد بعد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in safe_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"Y-m-d H:i" }}</td>
+                                        <td>{{ transaction.safe.name }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if transaction.transaction_type == 'sale_invoice' %}bg-primary
+                                                {% elif transaction.transaction_type == 'purchase_invoice' %}bg-success
+                                                {% elif transaction.transaction_type == 'sale_return_invoice' %}bg-warning
+                                                {% elif transaction.transaction_type == 'purchase_return_invoice' %}bg-info
+                                                {% elif transaction.transaction_type == 'collection' %}bg-danger
+                                                {% elif transaction.transaction_type == 'payment' %}bg-secondary
+                                                {% elif transaction.transaction_type == 'deposit' %}bg-dark
+                                                {% elif transaction.transaction_type == 'withdrawal' %}bg-light text-dark
+                                                {% elif transaction.transaction_type == 'expense' %}bg-danger
+                                                {% elif transaction.transaction_type == 'income' %}bg-success
+                                                {% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td class="{% if transaction.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ transaction.amount|floatformat:2 }}
+                                        </td>
+                                        <td>{{ transaction.description }}</td>
+                                        <td>{{ transaction.balance_before|floatformat:2 }}</td>
+                                        <td>{{ transaction.balance_after|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">لا توجد حركات خزنة مرتبطة بهذه الفاتورة</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- حركات المخزون -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">حركات المخزون</h6>
+                </div>
+                <div class="card-body">
+                    {% if product_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>المنتج</th>
+                                        <th>المخزن</th>
+                                        <th>نوع العملية</th>
+                                        <th>الوحدة</th>
+                                        <th>الكمية</th>
+                                        <th>الرصيد بعد</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in product_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"Y-m-d H:i" }}</td>
+                                        <td>{{ transaction.product.name }}</td>
+                                        <td>{{ transaction.store.name }}</td>
+                                        <td>
+                                            <span class="badge
+                                                {% if transaction.transaction_type == 'sale' %}bg-primary
+                                                {% elif transaction.transaction_type == 'purchase' %}bg-success
+                                                {% elif transaction.transaction_type == 'sale_return' %}bg-warning
+                                                {% elif transaction.transaction_type == 'purchase_return' %}bg-info
+                                                {% elif transaction.transaction_type == 'adjustment' %}bg-secondary
+                                                {% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.product_unit.unit.name }}</td>
+                                        <td>{{ transaction.quantity|floatformat:2 }}</td>
+                                        <td>{{ transaction.balance_after|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">لا توجد حركات مخزون مرتبطة بهذه الفاتورة</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل توزيع دفعة - {{ distribution.hatching.incubation.batch_entry.batch_name }} - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-share-alt me-2"></i>تفاصيل توزيع دفعة - {{ distribution.hatching.incubation.batch_entry.batch_name }}</h4>
+                <div>
+                    <a href="{% url 'hatchery:distribution_update' distribution.id %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit me-1"></i> تعديل
+                    </a>
+                    <a href="{% url 'hatchery:distribution_delete' distribution.id %}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash me-1"></i> حذف
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="card-title">معلومات الدفعة</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>اسم الدفعة</th>
+                                <td>{{ distribution.hatching.incubation.batch_entry.batch_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاريخ التسكين</th>
+                                <td>{{ distribution.hatching.incubation.incubation_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاريخ الخروج</th>
+                                <td>{{ distribution.hatching.hatch_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد الكتاكيت</th>
+                                <td>{{ distribution.hatching.chicks_count }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="card-title">معلومات التوزيع</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>تاريخ التوزيع</th>
+                                <td>{{ distribution.distribution_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>إجمالي الكتاكيت الموزعة</th>
+                                <td>{{ distribution.total_distributed_count }}</td>
+                            </tr>
+                            <tr>
+                                <th>الكتاكيت المتبقية</th>
+                                <td>{{ distribution.remaining_chicks }}</td>
+                            </tr>
+                            <tr>
+                                <th>إجمالي المبلغ المدفوع</th>
+                                <td>{{ distribution.total_paid_amount }}</td>
+                            </tr>
+                            <tr>
+                                <th>ملاحظات</th>
+                                <td>{{ distribution.notes|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title">تفاصيل التوزيع على العملاء</h5>
+                        {% if items %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>العميل</th>
+                                        <th>عدد الكتاكيت</th>
+                                        <th>السعر للوحدة</th>
+                                        <th>الإجمالي</th>
+                                        <th>المدفوع</th>
+                                        <th>المتبقي</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>{{ item.customer.name }}</td>
+                                        <td>{{ item.chicks_count }}</td>
+                                        <td>{{ item.price_per_unit }}</td>
+                                        <td>{{ item.total_amount }}</td>
+                                        <td>{{ item.paid_amount }}</td>
+                                        <td>{{ item.remaining_amount }}</td>
+                                        <td>{{ item.notes|default:"-"|truncatechars:30 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-primary">
+                                        <th>الإجمالي</th>
+                                        <th>{{ distribution.total_distributed_count }}</th>
+                                        <th>-</th>
+                                        <th>{{ items|length }}</th>
+                                        <th>{{ distribution.total_paid_amount }}</th>
+                                        <th>-</th>
+                                        <th>-</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد عناصر توزيع مسجلة لهذه الدفعة</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{% url 'hatchery:distribution_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right me-1"></i> العودة لقائمة التوزيعات
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

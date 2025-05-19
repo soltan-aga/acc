@@ -1,0 +1,198 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.id %}
+    تعديل خروج - {{ form.instance.incubation.batch_entry.batch_name }}
+    {% else %}
+    تسجيل خروج جديد
+    {% endif %}
+    - نظام إدارة معامل التفريخ
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-baby-carriage me-2"></i>
+                    {% if form.instance.id %}
+                    تعديل خروج - {{ form.instance.incubation.batch_entry.batch_name }}
+                    {% else %}
+                    تسجيل خروج جديد
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.incubation.id_for_label }}" class="form-label">{{ form.incubation.label }}</label>
+                        {{ form.incubation }}
+                        {% if form.incubation.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.incubation.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.hatch_date.id_for_label }}" class="form-label">{{ form.hatch_date.label }}</label>
+                        {{ form.hatch_date }}
+                        {% if form.hatch_date.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.hatch_date.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.chicks_count.id_for_label }}" class="form-label">{{ form.chicks_count.label }}</label>
+                        {{ form.chicks_count }}
+                        {% if form.chicks_count.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.chicks_count.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.culled_count.id_for_label }}" class="form-label">{{ form.culled_count.label }}</label>
+                        {{ form.culled_count }}
+                        {% if form.culled_count.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.culled_count.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.dead_count.id_for_label }}" class="form-label">{{ form.dead_count.label }}</label>
+                        {{ form.dead_count }}
+                        {% if form.dead_count.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.dead_count.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.fertility_rate.id_for_label }}" class="form-label">{{ form.fertility_rate.label }}</label>
+                        {{ form.fertility_rate }}
+                        {% if form.fertility_rate.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.fertility_rate.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.hatch_rate.id_for_label }}" class="form-label">{{ form.hatch_rate.label }}</label>
+                        {{ form.hatch_rate }}
+                        {% if form.hatch_rate.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.hatch_rate.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.notes.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hatchery:hatching_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> رجوع
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // الحصول على عناصر النموذج
+        const chicksCountInput = document.getElementById('id_chicks_count');
+        const culledCountInput = document.getElementById('id_culled_count');
+        const deadCountInput = document.getElementById('id_dead_count');
+        const hatchRateInput = document.getElementById('id_hatch_rate');
+        const incubationSelect = document.getElementById('id_incubation');
+
+        // دالة لحساب نسبة الفقس الحقيقية
+        function calculateHatchRate() {
+            // الحصول على بيانات الدفعة المسكنة
+            const incubationId = incubationSelect.value;
+            if (!incubationId) return;
+
+            // الحصول على قيم الإدخال
+            const chicksCount = parseInt(chicksCountInput.value) || 0;
+
+            // الحصول على بيانات الدفعة المسكنة من الخادم
+            fetch(`/hatchery/api/incubation/${incubationId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // حساب عدد البيض المخصب
+                    const fertileEggs = data.incubation_quantity - data.damaged_quantity;
+
+                    if (fertileEggs > 0) {
+                        // حساب نسبة الفقس الحقيقية
+                        const hatchRate = (chicksCount / fertileEggs) * 100;
+                        hatchRateInput.value = hatchRate.toFixed(2);
+                    }
+                })
+                .catch(error => console.error('Error fetching incubation data:', error));
+        }
+
+        // إضافة مستمعي الأحداث
+        if (chicksCountInput) {
+            chicksCountInput.addEventListener('input', calculateHatchRate);
+        }
+
+        if (incubationSelect) {
+            incubationSelect.addEventListener('change', calculateHatchRate);
+        }
+
+        // حساب نسبة الفقس الحقيقية عند تحميل الصفحة
+        calculateHatchRate();
+    });
+</script>
+{% endblock %}

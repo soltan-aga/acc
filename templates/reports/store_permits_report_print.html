@@ -1,0 +1,262 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+
+            body {
+                font-family: 'Tajawal', sans-serif;
+                font-size: 12pt;
+                line-height: 1.3;
+                background-color: white;
+                color: black;
+            }
+
+            .container-fluid {
+                width: 100%;
+                padding: 0;
+            }
+
+            .card {
+                border: none;
+                box-shadow: none;
+            }
+
+            .card-body {
+                padding: 0;
+            }
+
+            .table {
+                width: 100%;
+                margin-bottom: 1rem;
+                color: black;
+                border-collapse: collapse;
+            }
+
+            .table th,
+            .table td {
+                padding: 0.5rem;
+                border: 1px solid #dee2e6;
+            }
+
+            .table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6;
+                background-color: #f8f9fa;
+                font-weight: bold;
+            }
+
+            .table-striped tbody tr:nth-of-type(odd) {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+            .btn, .navbar, footer, .no-print {
+                display: none !important;
+            }
+
+            h1, h2, h3, h4, h5, h6 {
+                page-break-after: avoid;
+                page-break-inside: avoid;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+        }
+
+        /* Estilos para la vista previa */
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px 0;
+        }
+
+        .print-container {
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .print-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .print-footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .print-actions {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .print-actions .btn {
+            margin-right: 5px;
+        }
+
+        @media screen {
+            .container-fluid {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions d-print-none">
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print"></i> طباعة
+        </button>
+        <button onclick="window.close()" class="btn btn-secondary">
+            <i class="fas fa-times"></i> إغلاق
+        </button>
+    </div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12 text-center mb-4">
+                            <h2>{{ title }}</h2>
+                            <p>
+                                تاريخ الطباعة: {{ print_date|date:"Y-m-d H:i" }}
+                                {% if from_date or to_date %}
+                                <br>
+                                الفترة:
+                                {% if from_date %}من {{ from_date }}{% endif %}
+                                {% if to_date %} إلى {{ to_date }}{% endif %}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- جدول بنود الأذونات -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>رقم الإذن</th>
+                                    <th>نوع الإذن</th>
+                                    <th>التاريخ</th>
+                                    <th>المخزن</th>
+                                    <th>الشخص</th>
+                                    {% if settings.show_driver_in_permit_report %}
+                                    <th>السائق</th>
+                                    {% endif %}
+                                    {% if settings.show_representative_in_permit_report %}
+                                    <th>المندوب</th>
+                                    {% endif %}
+                                    <th>المنتج</th>
+                                    <th>الوحدة</th>
+                                    <th>الكمية</th>
+                                    <th>ملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in permit_items %}
+                                <tr>
+                                    <td>{{ item.permit.number }}</td>
+                                    <td>
+                                        {% if item.permit.permit_type == 'issue' %}
+                                            إذن صرف
+                                        {% else %}
+                                            إذن استلام
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.permit.date|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ item.permit.store.name }}</td>
+                                    <td>{{ item.permit.person_name }}</td>
+                                    {% if settings.show_driver_in_permit_report %}
+                                    <td>{{ item.permit.driver.name|default:"-" }}</td>
+                                    {% endif %}
+                                    {% if settings.show_representative_in_permit_report %}
+                                    <td>{{ item.permit.representative.name|default:"-" }}</td>
+                                    {% endif %}
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.product_unit.unit.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.notes|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="{% if settings.show_driver_in_permit_report and settings.show_representative_in_permit_report %}11{% elif settings.show_driver_in_permit_report or settings.show_representative_in_permit_report %}10{% else %}9{% endif %}" class="text-center">لا توجد بنود أذونات مخزنية تطابق معايير البحث</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row mt-5">
+                        <div class="col-4 text-center">
+                            <p>توقيع المدير</p>
+                            <div style="border-top: 1px solid #000; margin-top: 50px;"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <p>توقيع المحاسب</p>
+                            <div style="border-top: 1px solid #000; margin-top: 50px;"></div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <p>توقيع أمين المخزن</p>
+                            <div style="border-top: 1px solid #000; margin-top: 50px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // تنفيذ الطباعة تلقائيًا إذا كان هناك معلمة print=auto في الرابط
+    $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('print') === 'auto') {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}الخزن | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">الخزن</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'safe_add' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> إضافة خزنة جديدة
+        </a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        {% if safes %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>اسم الخزنة</th>
+                            <th>الفرع</th>
+                            <th>الشركة</th>
+                            <th>الرصيد الافتتاحي</th>
+                            <th>الرصيد الحالي</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for safe in safes %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ safe.name }}</td>
+                                <td>
+                                    <a href="{% url 'branch_detail' safe.branch.pk %}">
+                                        {{ safe.branch.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{% url 'company_detail' safe.branch.company.pk %}">
+                                        {{ safe.branch.company.name }}
+                                    </a>
+                                </td>
+                                <td>{{ safe.initial_balance }}</td>
+                                <td>
+                                    <span class="{% if safe.current_balance < 0 %}text-danger{% elif safe.current_balance > 0 %}text-success{% endif %}">
+                                        {{ safe.current_balance }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'safe_detail' safe.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'safe_edit' safe.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'safe_delete' safe.pk %}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                لا توجد خزن مسجلة حتى الآن. <a href="{% url 'safe_add' %}">أضف خزنة جديدة</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

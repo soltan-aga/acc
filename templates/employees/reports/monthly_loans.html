@@ -1,0 +1,179 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}تقرير السلف الشهري: {{ month_name }} {{ year }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تقرير السلف الشهري: {{ month_name }} {{ year }}</h1>
+        <div>
+            <a href="{% url 'employees:report_monthly_loans' %}?year={{ year }}&month={{ month }}&print=1" target="_blank" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </a>
+            <a href="{% url 'employees:loan_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة لقائمة السلف
+            </a>
+        </div>
+    </div>
+
+    <!-- نموذج البحث -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اختيار الشهر</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="month" class="form-label">الشهر</label>
+                    <select name="month" id="month" class="form-select">
+                        {% for m in '123456789101112'|make_list %}
+                        <option value="{{ m }}" {% if month == m|add:"0" %}selected{% endif %}>
+                            {% if m == '1' %}يناير{% elif m == '2' %}فبراير{% elif m == '3' %}مارس{% elif m == '4' %}أبريل{% elif m == '5' %}مايو{% elif m == '6' %}يونيو{% elif m == '7' %}يوليو{% elif m == '8' %}أغسطس{% elif m == '9' %}سبتمبر{% elif m == '10' %}أكتوبر{% elif m == '11' %}نوفمبر{% elif m == '12' %}ديسمبر{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="year" class="form-label">السنة</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for y in '2020,2021,2022,2023,2024,2025,2026,2027,2028,2029,2030'|split:',' %}
+                        <option value="{{ y }}" {% if year == y|add:"0" %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- إحصائيات السلف -->
+    <div class="row">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي السلف</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_amount }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                السلف المسددة ({{ paid_count }})</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_paid }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                السلف غير المسددة ({{ unpaid_count }})</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_unpaid }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول السلف -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">السلف الشهرية</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>التاريخ</th>
+                            <th>المبلغ</th>
+                            <th>الخزنة</th>
+                            <th>حالة السداد</th>
+                            <th>حالة الترحيل</th>
+                            <th>الوصف</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr>
+                            <td>{{ loan.employee.name }}</td>
+                            <td>{{ loan.date|date:"Y-m-d" }}</td>
+                            <td>{{ loan.amount }}</td>
+                            <td>{{ loan.safe.name }}</td>
+                            <td>
+                                {% if loan.is_paid %}
+                                <span class="badge bg-success">تم السداد</span>
+                                {% else %}
+                                <span class="badge bg-danger">لم يتم السداد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loan.is_posted %}
+                                <span class="badge bg-success">مرحل</span>
+                                {% else %}
+                                <span class="badge bg-warning">غير مرحل</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ loan.description|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'employees:loan_detail' loan.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">لا يوجد سلف في هذا الشهر</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "language": {
+                "url": "{% static 'js/dataTables.arabic.json' %}"
+            },
+            "order": [[1, "desc"]]
+        });
+    });
+</script>
+{% endblock %}

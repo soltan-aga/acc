@@ -1,0 +1,64 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة المطهرات الواردة - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-truck-loading me-2"></i>قائمة المطهرات الواردة</h4>
+            </div>
+            <div class="card-body">
+                {% if received_items %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المطهر</th>
+                                <th>المورد</th>
+                                <th>تاريخ الاستلام</th>
+                                <th>الكمية</th>
+                                <th>سعر الوحدة</th>
+                                <th>الإجمالي</th>
+                                <th>رقم الفاتورة</th>
+                                <th>تاريخ انتهاء الصلاحية</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for received in received_items %}
+                            <tr>
+                                <td>{{ received.disinfectant }}</td>
+                                <td>{{ received.supplier }}</td>
+                                <td>{{ received.date }}</td>
+                                <td>{{ received.quantity }} {{ received.disinfectant.unit }}</td>
+                                <td>{{ received.unit_price }}</td>
+                                <td>{{ received.total_price }}</td>
+                                <td>{{ received.invoice_number }}</td>
+                                <td>{{ received.expiry_date }}</td>
+                                <td>
+                                    <a href="{% url 'inventory:received_detail' received.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:received_update' received.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:received_delete' received.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مطهرات واردة مسجلة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل السلفة | {{ loan.employee.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تفاصيل السلفة: {{ loan.employee.name }}</h1>
+        <div>
+            <a href="{% url 'employees:loan_edit' loan.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+
+            {% if not loan.is_posted %}
+            <a href="{% url 'employees:loan_post' loan.pk %}" class="btn btn-success">
+                <i class="fas fa-check"></i> ترحيل
+            </a>
+            {% else %}
+            <a href="{% url 'employees:loan_unpost' loan.pk %}" class="btn btn-danger">
+                <i class="fas fa-undo"></i> إلغاء الترحيل
+            </a>
+            {% endif %}
+
+            <a href="{% url 'employees:loan_delete' loan.pk %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> حذف
+            </a>
+
+            <a href="{% url 'employees:loan_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+
+            <a href="#" onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- بيانات السلفة الأساسية -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">بيانات السلفة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">الموظف</th>
+                                    <td>
+                                        <a href="{% url 'employees:employee_detail' loan.employee.pk %}">
+                                            {{ loan.employee.name }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>المبلغ</th>
+                                    <td>{{ loan.amount }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ السلفة</th>
+                                    <td>{{ loan.date|date:"Y-m-d" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الخزنة</th>
+                                    <td>{{ loan.safe.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الوصف</th>
+                                    <td>{{ loan.description|default:"-"|linebreaks }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- حالة السلفة -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">حالة السلفة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">حالة السداد</th>
+                                    <td>
+                                        {% if loan.is_paid %}
+                                        <span class="badge bg-success">تم السداد</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">لم يتم السداد</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if loan.is_paid %}
+                                <tr>
+                                    <th>تاريخ السداد</th>
+                                    <td>{{ loan.payment_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>حالة الترحيل</th>
+                                    <td>
+                                        {% if loan.is_posted %}
+                                        <span class="badge bg-success">مرحل</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">غير مرحل</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if loan.is_posted and loan.transaction %}
+                                <tr>
+                                    <th>رقم مرجع الحركة</th>
+                                    <td>{{ loan.transaction.reference_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الترحيل</th>
+                                    <td>{{ loan.transaction.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if loan.is_posted and loan.transaction %}
+    <!-- تفاصيل حركة الخزنة -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تفاصيل حركة الخزنة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>الخزنة</th>
+                                    <th>نوع الحركة</th>
+                                    <th>المبلغ</th>
+                                    <th>الرصيد قبل</th>
+                                    <th>الرصيد بعد</th>
+                                    <th>الوصف</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ loan.transaction.safe.name }}</td>
+                                    <td>
+                                        {% if loan.transaction.transaction_type == 'deposit' %}
+                                        <span class="badge bg-success">إيداع</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">سحب</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ loan.transaction.amount }}</td>
+                                    <td>{{ loan.transaction.balance_before }}</td>
+                                    <td>{{ loan.transaction.balance_after }}</td>
+                                    <td>{{ loan.transaction.description }}</td>
+                                    <td>{{ loan.transaction.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

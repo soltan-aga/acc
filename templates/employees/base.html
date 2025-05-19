@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block sidebar %}
+<div class="sidebar-heading">شؤون الموظفين</div>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseEmployees"
+        aria-expanded="false" aria-controls="collapseEmployees">
+        <i class="fas fa-users"></i>
+        <span>الموظفين</span>
+    </a>
+    <div id="collapseEmployees" class="collapse" aria-labelledby="headingEmployees" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">إدارة الموظفين:</h6>
+            <a class="collapse-item" href="{% url 'employees:employee_list' %}">قائمة الموظفين</a>
+            <a class="collapse-item" href="{% url 'employees:employee_add' %}">إضافة موظف</a>
+        </div>
+    </div>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseAttendance"
+        aria-expanded="false" aria-controls="collapseAttendance">
+        <i class="fas fa-calendar-check"></i>
+        <span>الحضور والغياب</span>
+    </a>
+    <div id="collapseAttendance" class="collapse" aria-labelledby="headingAttendance" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">إدارة الحضور:</h6>
+            <a class="collapse-item" href="{% url 'employees:attendance_daily' %}">الحضور اليومي</a>
+            <a class="collapse-item" href="{% url 'employees:attendance_monthly' %}">الحضور الشهري</a>
+            <a class="collapse-item" href="{% url 'employees:attendance_add' %}">تسجيل حضور</a>
+            <a class="collapse-item" href="{% url 'employees:attendance_bulk_add' %}">تسجيل حضور جماعي</a>
+        </div>
+    </div>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseLoans"
+        aria-expanded="false" aria-controls="collapseLoans">
+        <i class="fas fa-hand-holding-usd"></i>
+        <span>السلف</span>
+    </a>
+    <div id="collapseLoans" class="collapse" aria-labelledby="headingLoans" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">إدارة السلف:</h6>
+            <a class="collapse-item" href="{% url 'employees:loan_list' %}">قائمة السلف</a>
+            <a class="collapse-item" href="{% url 'employees:loan_add' %}">إضافة سلفة</a>
+        </div>
+    </div>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseSalaries"
+        aria-expanded="false" aria-controls="collapseSalaries">
+        <i class="fas fa-money-bill-wave"></i>
+        <span>المرتبات</span>
+    </a>
+    <div id="collapseSalaries" class="collapse" aria-labelledby="headingSalaries" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">إدارة المرتبات:</h6>
+            <a class="collapse-item" href="{% url 'employees:salary_list' %}">قائمة المرتبات</a>
+            <a class="collapse-item" href="{% url 'employees:salary_add' %}">إضافة راتب</a>
+            <a class="collapse-item" href="{% url 'employees:salary_generate_monthly' %}">إنشاء رواتب شهرية</a>
+        </div>
+    </div>
+</li>
+
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapseReports"
+        aria-expanded="false" aria-controls="collapseReports">
+        <i class="fas fa-file-alt"></i>
+        <span>التقارير</span>
+    </a>
+    <div id="collapseReports" class="collapse" aria-labelledby="headingReports" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">تقارير الموظفين:</h6>
+            <a class="collapse-item" href="{% url 'employees:report_attendance_daily' %}">تقرير الحضور اليومي</a>
+            <a class="collapse-item" href="{% url 'employees:report_attendance_monthly' %}">تقرير الحضور الشهري</a>
+        </div>
+    </div>
+</li>
+{% endblock %}

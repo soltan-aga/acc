@@ -1,0 +1,152 @@
+{% extends "employees/base.html" %}
+{% load static %}
+{% load employee_tags %}
+
+{% block title %}الحضور الشهري{% endblock %}
+
+{% block extra_css %}
+<style>
+    .attendance-table th, .attendance-table td {
+        text-align: center;
+        vertical-align: middle;
+        padding: 0.5rem;
+    }
+    .attendance-present {
+        background-color: #d4edda;
+    }
+    .attendance-absent {
+        background-color: #f8d7da;
+    }
+    .attendance-excused {
+        background-color: #fff3cd;
+    }
+    .attendance-none {
+        background-color: #f8f9fa;
+    }
+    .day-header {
+        width: 40px;
+        min-width: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">الحضور الشهري</h1>
+        <div class="btn-group">
+            <a href="{% url 'employees:report_attendance_monthly' %}?year={{ year }}&month={{ month }}&print=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة الملخص
+            </a>
+            <a href="{% url 'employees:report_attendance_monthly' %}?year={{ year }}&month={{ month }}&print=1&detailed=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة التفاصيل
+            </a>
+        </div>
+    </div>
+
+    <!-- Month Selection -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اختر الشهر</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <select name="month" class="form-select">
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if month == i|add:"0" %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="year" class="form-select">
+                        {% for i in "012345"|make_list %}
+                        {% with offset=i|add:"-5" %}
+                        <option value="{{ year|add:offset }}" {% if year == year|add:offset %}selected{% endif %}>{{ year|add:offset }}</option>
+                        {% endwith %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Monthly Attendance Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">سجل الحضور لشهر {{ month_name }} {{ year }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered attendance-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">الموظف</th>
+                            {% for day in days_in_month|get_range %}
+                            <th class="day-header">{{ day }}</th>
+                            {% endfor %}
+                            <th rowspan="2">حاضر</th>
+                            <th rowspan="2">غائب</th>
+                            <th rowspan="2">بعذر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee_data in employees_data %}
+                        <tr>
+                            <td>{{ employee_data.employee.name }}</td>
+                            {% for day_data in employee_data.days %}
+                            <td class="
+                                {% if day_data.attendance %}
+                                    {% if day_data.attendance.status == 'present' %}
+                                        attendance-present
+                                    {% elif day_data.attendance.status == 'absent' %}
+                                        attendance-absent
+                                    {% elif day_data.attendance.status == 'excused' %}
+                                        attendance-excused
+                                    {% endif %}
+                                {% else %}
+                                    attendance-none
+                                {% endif %}
+                            ">
+                                {% if day_data.attendance %}
+                                    {% if day_data.attendance.status == 'present' %}
+                                        <i class="fas fa-check text-success"></i>
+                                    {% elif day_data.attendance.status == 'absent' %}
+                                        <i class="fas fa-times text-danger"></i>
+                                    {% elif day_data.attendance.status == 'excused' %}
+                                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td>{{ employee_data.present_count }}</td>
+                            <td>{{ employee_data.absent_count }}</td>
+                            <td>{{ employee_data.excused_count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{{ days_in_month|add:4 }}" class="text-center">لا يوجد موظفين</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // إضافة دالة للحصول على نطاق من الأرقام
+    Django.jinja2.filters.get_range = function(value) {
+        return Array.from({length: value}, (_, i) => i + 1);
+    };
+</script>
+{% endblock %}

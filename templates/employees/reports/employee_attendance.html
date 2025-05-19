@@ -1,0 +1,240 @@
+{% extends "employees/base.html" %}
+{% load static %}
+{% load employee_tags %}
+
+{% block title %}تقرير حضور موظف{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .print-only {
+            display: block !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background-color: transparent !important;
+            border-bottom: 1px solid #000 !important;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+        .container-fluid {
+            width: 100%;
+            padding: 0;
+        }
+        .badge {
+            border: 1px solid #000;
+            padding: 2px 5px;
+        }
+        .bg-success {
+            background-color: #d4edda !important;
+            color: #000 !important;
+        }
+        .bg-danger {
+            background-color: #f8d7da !important;
+            color: #000 !important;
+        }
+        .bg-warning {
+            background-color: #fff3cd !important;
+            color: #000 !important;
+        }
+    }
+    .print-only {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تقرير حضور موظف</h1>
+        <div>
+            <a href="?employee_id={{ employee.id }}&year={{ year }}&month={{ month }}&print=1" target="_blank" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة التقرير
+            </a>
+            <button onclick="window.print()" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm no-print">
+                <i class="fas fa-print fa-sm text-white-50"></i> طباعة الصفحة الحالية
+            </button>
+        </div>
+    </div>
+
+    <!-- Print Header -->
+    <div class="print-only text-center mb-4">
+        <h2>تقرير حضور موظف</h2>
+        <h3>{{ employee.name }} - {{ month_name }} {{ year }}</h3>
+    </div>
+
+    <!-- Employee Info -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">بيانات الموظف</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>الاسم:</strong> {{ employee.name }}</p>
+                    <p><strong>المسمى الوظيفي:</strong> {{ employee.job_title|default:"-" }}</p>
+                    <p><strong>القسم:</strong> {{ employee.department|default:"-" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>الرقم القومي:</strong> {{ employee.national_id|default:"-" }}</p>
+                    <p><strong>رقم الهاتف:</strong> {{ employee.phone|default:"-" }}</p>
+                    <p><strong>تاريخ التعيين:</strong> {{ employee.hire_date|date:"Y-m-d" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Selection -->
+    <div class="card shadow mb-4 no-print">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اختر الشهر</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <input type="hidden" name="employee_id" value="{{ employee.id }}">
+                <div class="col-md-3">
+                    <select name="month" class="form-select">
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if month == i|add:"0" %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="year" class="form-select">
+                        {% for i in "012345"|make_list %}
+                        {% with offset=i|add:"-5" %}
+                        <option value="{{ year|add:offset }}" {% if year == year|add:offset %}selected{% endif %}>{{ year|add:offset }}</option>
+                        {% endwith %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">عرض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                أيام الحضور</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ present_count }}</div>
+                        </div>
+                        <div class="col-auto no-print">
+                            <i class="fas fa-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                أيام الغياب</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ absent_count }}</div>
+                        </div>
+                        <div class="col-auto no-print">
+                            <i class="fas fa-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                أيام الغياب بعذر</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ excused_count }}</div>
+                        </div>
+                        <div class="col-auto no-print">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">سجل الحضور لشهر {{ month_name }} {{ year }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>وقت الحضور</th>
+                            <th>وقت الانصراف</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ record.date|date:"Y-m-d" }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                <span class="badge bg-success">حاضر</span>
+                                {% elif record.status == 'absent' %}
+                                <span class="badge bg-danger">غائب</span>
+                                {% elif record.status == 'excused' %}
+                                <span class="badge bg-warning">غائب بعذر</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.check_in|time|default:"-" }}</td>
+                            <td>{{ record.check_out|time|default:"-" }}</td>
+                            <td>{{ record.notes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">لا يوجد سجلات حضور لهذا الشهر</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Footer -->
+    <div class="print-only text-center mt-4">
+        <p>تم إنشاء هذا التقرير في: {{ now|date:"Y-m-d H:i" }}</p>
+    </div>
+</div>
+{% endblock %}

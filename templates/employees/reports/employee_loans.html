@@ -1,0 +1,145 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}تقرير سلف الموظف: {{ employee.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">تقرير سلف الموظف: {{ employee.name }}</h1>
+        <div>
+            <a href="{% url 'employees:report_employee_loans' employee.pk %}?print=1" target="_blank" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </a>
+            <a href="{% url 'employees:employee_detail' employee.pk %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة لتفاصيل الموظف
+            </a>
+        </div>
+    </div>
+
+    <!-- إحصائيات السلف -->
+    <div class="row">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي السلف</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_amount }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                السلف المسددة ({{ paid_count }})</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_paid }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                السلف غير المسددة ({{ unpaid_count }})</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_unpaid }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول السلف -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">سلف الموظف</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المبلغ</th>
+                            <th>الخزنة</th>
+                            <th>حالة السداد</th>
+                            <th>حالة الترحيل</th>
+                            <th>الوصف</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr>
+                            <td>{{ loan.date|date:"Y-m-d" }}</td>
+                            <td>{{ loan.amount }}</td>
+                            <td>{{ loan.safe.name }}</td>
+                            <td>
+                                {% if loan.is_paid %}
+                                <span class="badge bg-success">تم السداد</span>
+                                {% else %}
+                                <span class="badge bg-danger">لم يتم السداد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loan.is_posted %}
+                                <span class="badge bg-success">مرحل</span>
+                                {% else %}
+                                <span class="badge bg-warning">غير مرحل</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ loan.description|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'employees:loan_detail' loan.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">لا يوجد سلف لهذا الموظف</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "language": {
+                "url": "{% static 'js/dataTables.arabic.json' %}"
+            },
+            "order": [[0, "desc"]]
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+
+{% block title %}الإشعارات | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block extra_css %}
+<style>
+.notification {
+    transition: background-color 0.3s;
+}
+.notification:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+.notification.unread {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-left: 15px;
+}
+.notification-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="card-title mb-0">الإشعارات</h4>
+                <div>
+                    {% if unread_count > 0 %}
+                        <button id="markAllRead" class="btn btn-light btn-sm">تعيين الكل كمقروء</button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if notifications %}
+                    <div class="list-group">
+                        {% for notification in notifications %}
+                            <div class="list-group-item notification {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                                <div class="d-flex">
+                                    <div class="notification-icon
+                                        {% if notification.notification_type == 'invoice' %}bg-success text-white
+                                        {% elif notification.notification_type == 'payment' %}bg-info text-white
+                                        {% elif notification.notification_type == 'user' %}bg-primary text-white
+                                        {% elif notification.notification_type == 'product' %}bg-warning text-dark
+                                        {% elif notification.notification_type == 'contact' %}bg-secondary text-white
+                                        {% else %}bg-dark text-white{% endif %}">
+                                        {% if notification.notification_type == 'invoice' %}
+                                            <i class="fas fa-file-invoice"></i>
+                                        {% elif notification.notification_type == 'payment' %}
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        {% elif notification.notification_type == 'user' %}
+                                            <i class="fas fa-user"></i>
+                                        {% elif notification.notification_type == 'product' %}
+                                            <i class="fas fa-box"></i>
+                                        {% elif notification.notification_type == 'contact' %}
+                                            <i class="fas fa-address-book"></i>
+                                        {% else %}
+                                            <i class="fas fa-bell"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="mb-1">{{ notification.title }}</h5>
+                                            <small class="notification-time">{{ notification.created_at|date:"d/m/Y H:i" }}</small>
+                                        </div>
+                                        <p class="mb-1">{{ notification.message }}</p>
+                                        {% if notification.sender %}
+                                            <small class="text-muted">من: {{ notification.sender.get_full_name|default:notification.sender.username }}</small>
+                                        {% endif %}
+                                        {% if not notification.is_read %}
+                                            <span class="badge bg-primary float-end mark-read" data-id="{{ notification.id }}">تعيين كمقروء</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        لا توجد إشعارات.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mark single notification as read
+        document.querySelectorAll('.mark-read').forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const notificationId = this.getAttribute('data-id');
+                markAsRead(notificationId);
+            });
+        });
+
+        // Mark all notifications as read
+        const markAllReadButton = document.getElementById('markAllRead');
+        if (markAllReadButton) {
+            markAllReadButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                markAllAsRead();
+            });
+        }
+
+        // Function to mark a notification as read
+        function markAsRead(notificationId) {
+            fetch(`/users/notifications/mark-read/${notificationId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update UI
+                    const notification = document.querySelector(`.notification[data-id="${notificationId}"]`);
+                    notification.classList.remove('unread');
+                    const badge = notification.querySelector('.mark-read');
+                    if (badge) {
+                        badge.remove();
+                    }
+
+                    // Update notification count in navbar
+                    updateNotificationCount();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to mark all notifications as read
+        function markAllAsRead() {
+            fetch('/users/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update UI
+                    document.querySelectorAll('.notification.unread').forEach(function(notification) {
+                        notification.classList.remove('unread');
+                    });
+                    document.querySelectorAll('.mark-read').forEach(function(badge) {
+                        badge.remove();
+                    });
+
+                    // Hide the mark all as read button
+                    const markAllReadButton = document.getElementById('markAllRead');
+                    if (markAllReadButton) {
+                        markAllReadButton.style.display = 'none';
+                    }
+
+                    // Update notification count in navbar
+                    updateNotificationCount();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to update notification count
+        function updateNotificationCount() {
+            fetch('/users/notifications/count/')
+            .then(response => response.json())
+            .then(data => {
+                const countElement = document.getElementById('notificationCount');
+                if (countElement) {
+                    if (data.count > 0) {
+                        countElement.textContent = data.count;
+                        countElement.style.display = 'inline-block';
+                    } else {
+                        countElement.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

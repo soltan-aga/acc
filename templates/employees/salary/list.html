@@ -1,0 +1,163 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}قائمة المرتبات{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">قائمة المرتبات</h1>
+        <div>
+            <a href="{% url 'employees:salary_generate_monthly' %}" class="d-none d-sm-inline-block btn btn-sm btn-success shadow-sm me-2">
+                <i class="fas fa-list fa-sm text-white-50"></i> إنشاء رواتب شهرية
+            </a>
+            <a href="{% url 'employees:salary_add' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-plus fa-sm text-white-50"></i> إضافة راتب جديد
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">بحث</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" name="q" class="form-control" placeholder="اسم الموظف" value="{{ request.GET.q }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="month" class="form-select">
+                        <option value="">-- الشهر --</option>
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if request.GET.month == i %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="year" class="form-select">
+                        <option value="">-- السنة --</option>
+                        {% for i in "012345"|make_list %}
+                        <option value="{{ current_year|add:i|add:"-5" }}" {% if request.GET.year == current_year|add:i|add:"-5"|stringformat:"s" %}selected{% endif %}>{{ current_year|add:i|add:"-5" }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="is_paid" class="form-select">
+                        <option value="">-- حالة الصرف --</option>
+                        <option value="1" {% if request.GET.is_paid == '1' %}selected{% endif %}>تم الصرف</option>
+                        <option value="0" {% if request.GET.is_paid == '0' %}selected{% endif %}>لم يتم الصرف</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="is_posted" class="form-select">
+                        <option value="">-- حالة الترحيل --</option>
+                        <option value="1" {% if request.GET.is_posted == '1' %}selected{% endif %}>مرحل</option>
+                        <option value="0" {% if request.GET.is_posted == '0' %}selected{% endif %}>غير مرحل</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">بحث</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Salaries Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">المرتبات</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الشهر/السنة</th>
+                            <th>الراتب الأساسي</th>
+                            <th>الخصومات</th>
+                            <th>خصم السلف</th>
+                            <th>صافي الراتب</th>
+                            <th>حالة الصرف</th>
+                            <th>حالة الترحيل</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for salary in salaries %}
+                        <tr>
+                            <td>{{ salary.employee.name }}</td>
+                            <td>{{ salary.month }}/{{ salary.year }}</td>
+                            <td>{{ salary.base_salary }}</td>
+                            <td>{{ salary.deductions }}</td>
+                            <td>{{ salary.loans_deduction }}</td>
+                            <td>{{ salary.net_salary }}</td>
+                            <td>
+                                {% if salary.is_paid %}
+                                <span class="badge bg-success">تم الصرف</span>
+                                {% else %}
+                                <span class="badge bg-danger">لم يتم الصرف</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if salary.is_posted %}
+                                <span class="badge bg-success">مرحل</span>
+                                {% else %}
+                                <span class="badge bg-warning">غير مرحل</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'employees:salary_detail' salary.id %}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if not salary.is_posted %}
+                                <a href="{% url 'employees:salary_edit' salary.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'employees:salary_post' salary.id %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <a href="{% url 'employees:salary_delete' salary.id %}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'employees:salary_unpost' salary.id %}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-undo"></i>
+                                </a>
+                                <a href="{% url 'employees:salary_edit' salary.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'employees:salary_delete' salary.id %}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">لا يوجد مرتبات</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#dataTable').DataTable({
+            "language": {
+                "url": "{% static 'js/dataTables.arabic.json' %}"
+            },
+            "order": [[1, "desc"]]
+        });
+    });
+</script>
+{% endblock %}

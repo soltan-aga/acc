@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف عملية سحب من الخزنة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">حذف عملية سحب من الخزنة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">تأكيد الحذف</h5>
+                        <p>هل أنت متأكد من حذف عملية السحب رقم "{{ withdrawal.number }}"؟</p>
+                        <hr>
+                        <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>بيانات عملية السحب:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>الرقم:</strong> {{ withdrawal.number }}</li>
+                            <li class="list-group-item"><strong>التاريخ:</strong> {{ withdrawal.date|date:"Y-m-d" }}</li>
+                            <li class="list-group-item"><strong>الخزنة:</strong> {{ withdrawal.safe.name }}</li>
+                            <li class="list-group-item"><strong>المبلغ:</strong> {{ withdrawal.amount }}</li>
+                            <li class="list-group-item"><strong>الوجهة:</strong> {{ withdrawal.destination }}</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'safe_withdrawal_detail' withdrawal.id %}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

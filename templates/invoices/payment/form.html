@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}إضافة دفعة جديدة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">إضافة دفعة جديدة</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.number.id_for_label }}" class="form-label">رقم المستند</label>
+                        {{ form.number }}
+                        {% if form.number.errors %}
+                        <div class="text-danger">{{ form.number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">التاريخ</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                        <div class="text-danger">{{ form.date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.payment_type.id_for_label }}" class="form-label">نوع العملية</label>
+                        {{ form.payment_type }}
+                        {% if form.payment_type.errors %}
+                        <div class="text-danger">{{ form.payment_type.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">المبلغ</label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                        <div class="text-danger">{{ form.amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.contact.id_for_label }}" class="form-label">العميل/المورد</label>
+                        {{ form.contact }}
+                        {% if form.contact.errors %}
+                        <div class="text-danger">{{ form.contact.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.safe.id_for_label }}" class="form-label">الخزنة</label>
+                        {{ form.safe }}
+                        {% if form.safe.errors %}
+                        <div class="text-danger">{{ form.safe.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.reference_number.id_for_label }}" class="form-label">الرقم المرجعي</label>
+                        {{ form.reference_number }}
+                        {% if form.reference_number.errors %}
+                        <div class="text-danger">{{ form.reference_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.invoice.id_for_label }}" class="form-label">الفاتورة المرتبطة</label>
+                        {{ form.invoice }}
+                        {% if form.invoice.errors %}
+                        <div class="text-danger">{{ form.invoice.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">ملاحظات</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                    <div class="text-danger">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                    <a href="{% url 'payment_list' %}" class="btn btn-secondary">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تهيئة حقول التاريخ
+        const dateFields = document.querySelectorAll('input[type="date"]');
+        dateFields.forEach(field => {
+            field.classList.add('form-control');
+        });
+
+        // تهيئة حقول النص
+        const textFields = document.querySelectorAll('input[type="text"], input[type="number"]');
+        textFields.forEach(field => {
+            field.classList.add('form-control');
+        });
+
+        // تهيئة حقول الاختيار
+        const selectFields = document.querySelectorAll('select');
+        selectFields.forEach(field => {
+            field.classList.add('form-select');
+        });
+
+        // تهيئة حقول النص المتعدد
+        const textareaFields = document.querySelectorAll('textarea');
+        textareaFields.forEach(field => {
+            field.classList.add('form-control');
+            field.rows = 3;
+        });
+    });
+</script>
+{% endblock %}

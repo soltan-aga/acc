@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف الخزنة {{ safe.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">تأكيد الحذف</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <p>هل أنت متأكد من حذف الخزنة <strong>{{ safe.name }}</strong>؟</p>
+                    <p class="mb-0">سيتم حذف جميع البيانات المرتبطة بهذه الخزنة بما في ذلك المعاملات المالية.</p>
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم الخزنة</th>
+                            <td>{{ safe.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الفرع</th>
+                            <td>{{ safe.branch.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الشركة</th>
+                            <td>{{ safe.branch.company.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الافتتاحي</th>
+                            <td>{{ safe.initial_balance }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الحالي</th>
+                            <td>
+                                <span class="{% if safe.current_balance < 0 %}text-danger{% elif safe.current_balance > 0 %}text-success{% endif %} fw-bold">
+                                    {{ safe.current_balance }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> تأكيد الحذف
+                        </button>
+                        <a href="{% url 'safe_detail' safe.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

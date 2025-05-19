@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{{ title }}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="invoice-settings-tab" data-bs-toggle="tab" data-bs-target="#invoice-settings" type="button" role="tab" aria-controls="invoice-settings" aria-selected="true">
+                            <i class="fas fa-file-invoice"></i> إعدادات الفواتير
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="print-settings-tab" data-bs-toggle="tab" data-bs-target="#print-settings" type="button" role="tab" aria-controls="print-settings" aria-selected="false">
+                            <i class="fas fa-print"></i> إعدادات الطباعة
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="settingsTabsContent">
+                    <!-- إعدادات الفواتير -->
+                    <div class="tab-pane fade show active" id="invoice-settings" role="tabpanel" aria-labelledby="invoice-settings-tab">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.default_invoice_type.id_for_label }}" class="form-label">{{ form.default_invoice_type.label }}</label>
+                                    {{ form.default_invoice_type }}
+                                    {% if form.default_invoice_type.errors %}
+                                        <div class="text-danger">{{ form.default_invoice_type.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form.update_purchase_price }}
+                                    <label class="form-check-label" for="{{ form.update_purchase_price.id_for_label }}">{{ form.update_purchase_price.label }}</label>
+                                    {% if form.update_purchase_price.errors %}
+                                        <div class="text-danger">{{ form.update_purchase_price.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form.update_sale_price }}
+                                    <label class="form-check-label" for="{{ form.update_sale_price.id_for_label }}">{{ form.update_sale_price.label }}</label>
+                                    {% if form.update_sale_price.errors %}
+                                        <div class="text-danger">{{ form.update_sale_price.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form.alert_below_sale_price }}
+                                    <label class="form-check-label" for="{{ form.alert_below_sale_price.id_for_label }}">{{ form.alert_below_sale_price.label }}</label>
+                                    {% if form.alert_below_sale_price.errors %}
+                                        <div class="text-danger">{{ form.alert_below_sale_price.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form.alert_below_purchase_price }}
+                                    <label class="form-check-label" for="{{ form.alert_below_purchase_price.id_for_label }}">{{ form.alert_below_purchase_price.label }}</label>
+                                    {% if form.alert_below_purchase_price.errors %}
+                                        <div class="text-danger">{{ form.alert_below_purchase_price.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">التعامل مع تكرار الصنف:</label>
+                                    <div class="mt-2">
+                                        {% for radio in form.duplicate_item_handling %}
+                                        <div class="form-check mb-2">
+                                            {{ radio.tag }}
+                                            <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if form.duplicate_item_handling.errors %}
+                                        <div class="text-danger">{{ form.duplicate_item_handling.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.default_customer.id_for_label }}" class="form-label">{{ form.default_customer.label }}</label>
+                                    {{ form.default_customer }}
+                                    {% if form.default_customer.errors %}
+                                        <div class="text-danger">{{ form.default_customer.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.default_supplier.id_for_label }}" class="form-label">{{ form.default_supplier.label }}</label>
+                                    {{ form.default_supplier }}
+                                    {% if form.default_supplier.errors %}
+                                        <div class="text-danger">{{ form.default_supplier.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.default_safe.id_for_label }}" class="form-label">{{ form.default_safe.label }}</label>
+                                    {{ form.default_safe }}
+                                    {% if form.default_safe.errors %}
+                                        <div class="text-danger">{{ form.default_safe.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.default_store.id_for_label }}" class="form-label">{{ form.default_store.label }}</label>
+                                    {{ form.default_store }}
+                                    {% if form.default_store.errors %}
+                                        <div class="text-danger">{{ form.default_store.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- إعدادات الطباعة -->
+                    <div class="tab-pane fade" id="print-settings" role="tabpanel" aria-labelledby="print-settings-tab">
+                        <!-- إعدادات طباعة الفواتير -->
+                        <h5 class="border-bottom pb-2 mb-3">إعدادات طباعة الفواتير</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3 form-check">
+                                    {{ form.hide_company_info }}
+                                    <label class="form-check-label" for="{{ form.hide_company_info.id_for_label }}">{{ form.hide_company_info.label }}</label>
+                                    {% if form.hide_company_info.errors %}
+                                        <div class="text-danger">{{ form.hide_company_info.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3 form-check">
+                                    {{ form.show_previous_balance }}
+                                    <label class="form-check-label" for="{{ form.show_previous_balance.id_for_label }}">{{ form.show_previous_balance.label }}</label>
+                                    {% if form.show_previous_balance.errors %}
+                                        <div class="text-danger">{{ form.show_previous_balance.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.invoice_header_text.id_for_label }}" class="form-label">{{ form.invoice_header_text.label }}</label>
+                                    {{ form.invoice_header_text }}
+                                    {% if form.invoice_header_text.errors %}
+                                        <div class="text-danger">{{ form.invoice_header_text.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.invoice_footer_text.id_for_label }}" class="form-label">{{ form.invoice_footer_text.label }}</label>
+                                    {{ form.invoice_footer_text }}
+                                    {% if form.invoice_footer_text.errors %}
+                                        <div class="text-danger">{{ form.invoice_footer_text.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- إعدادات طباعة تقرير الأذونات المخزنية -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">إعدادات طباعة تقرير الأذونات المخزنية</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3 form-check">
+                                    {{ form.show_driver_in_permit_report }}
+                                    <label class="form-check-label" for="{{ form.show_driver_in_permit_report.id_for_label }}">{{ form.show_driver_in_permit_report.label }}</label>
+                                    {% if form.show_driver_in_permit_report.errors %}
+                                        <div class="text-danger">{{ form.show_driver_in_permit_report.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3 form-check">
+                                    {{ form.show_representative_in_permit_report }}
+                                    <label class="form-check-label" for="{{ form.show_representative_in_permit_report.id_for_label }}">{{ form.show_representative_in_permit_report.label }}</label>
+                                    {% if form.show_representative_in_permit_report.errors %}
+                                        <div class="text-danger">{{ form.show_representative_in_permit_report.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ الإعدادات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

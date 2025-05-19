@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}الفروع | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">الفروع</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'branch_add' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> إضافة فرع جديد
+        </a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        {% if branches %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>اسم الفرع</th>
+                            <th>الشركة</th>
+                            <th>العنوان</th>
+                            <th>رقم الهاتف</th>
+                            <th>المدير</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for branch in branches %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ branch.name }}</td>
+                                <td>
+                                    <a href="{% url 'company_detail' branch.company.pk %}">
+                                        {{ branch.company.name }}
+                                    </a>
+                                </td>
+                                <td>{{ branch.address|truncatechars:30 }}</td>
+                                <td dir="ltr">{{ branch.phone }}</td>
+                                <td>{{ branch.manager|default:"-" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'branch_detail' branch.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'branch_edit' branch.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'branch_delete' branch.pk %}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                لا توجد فروع مسجلة حتى الآن. <a href="{% url 'branch_add' %}">أضف فرع جديد</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

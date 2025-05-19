@@ -1,0 +1,139 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل خروج - {{ hatching.incubation.batch_entry.batch_name }} - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-baby-carriage me-2"></i>تفاصيل خروج</h4>
+                <div>
+                    <a href="{% url 'hatchery:hatching_update' hatching.id %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit me-1"></i> تعديل
+                    </a>
+                    <a href="{% url 'hatchery:hatching_delete' hatching.id %}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-trash me-1"></i> حذف
+                    </a>
+                    <a href="{% url 'hatchery:culled_sale_create' hatching.id %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-shopping-cart me-1"></i> بيع فرزة
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="card-title">معلومات الدفعة</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>اسم الدفعة</th>
+                                <td>{{ hatching.incubation.batch_entry.batch_name }}</td>
+                            </tr>
+                            <tr>
+                                <th>تاريخ التسكين</th>
+                                <td>{{ hatching.incubation.incubation_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد التسكين</th>
+                                <td>{{ hatching.incubation.incubation_quantity }}</td>
+                            </tr>
+                            <tr>
+                                <th>المعدم عند التسكين</th>
+                                <td>{{ hatching.incubation.damaged_quantity }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="card-title">معلومات الخروج</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>تاريخ الخروج</th>
+                                <td>{{ hatching.hatch_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد الكتاكيت</th>
+                                <td>{{ hatching.chicks_count }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد الفرزة</th>
+                                <td>{{ hatching.culled_count }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد الفاطس</th>
+                                <td>{{ hatching.dead_count }}</td>
+                            </tr>
+                            <tr>
+                                <th>عدد المعدم</th>
+                                <td>{{ hatching.wasted_count }}</td>
+                            </tr>
+                            <tr>
+                                <th>نسبة الإخصاب</th>
+                                <td>{{ hatching.fertility_rate }}%</td>
+                            </tr>
+                            <tr>
+                                <th>نسبة الفقس الحقيقية</th>
+                                <td>{{ hatching.hatch_rate }}%</td>
+                            </tr>
+                            <tr>
+                                <th>ملاحظات</th>
+                                <td>{{ hatching.notes|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title">مبيعات الفرزة</h5>
+                        {% if hatching.culled_sales.all %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>العميل</th>
+                                        <th>تاريخ الفاتورة</th>
+                                        <th>العدد</th>
+                                        <th>السعر للوحدة</th>
+                                        <th>الإجمالي</th>
+                                        <th>المدفوع</th>
+                                        <th>المتبقي</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sale in hatching.culled_sales.all %}
+                                    <tr>
+                                        <td>{{ sale.customer }}</td>
+                                        <td>{{ sale.invoice_date }}</td>
+                                        <td>{{ sale.quantity }}</td>
+                                        <td>{{ sale.price_per_unit }}</td>
+                                        <td>{{ sale.total_amount }}</td>
+                                        <td>{{ sale.paid_amount }}</td>
+                                        <td>{{ sale.remaining_amount }}</td>
+                                        <td>
+                                            <a href="{% url 'hatchery:culled_sale_detail' sale.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد مبيعات فرزة مسجلة لهذه الدفعة</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{% url 'hatchery:hatching_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right me-1"></i> العودة لقائمة الخروج
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

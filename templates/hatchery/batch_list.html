@@ -1,0 +1,62 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة الدفعات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-egg me-2"></i>قائمة الدفعات</h4>
+                <a href="{% url 'hatchery:batch_create' %}" class="btn btn-light">
+                    <i class="fas fa-plus me-1"></i> إضافة دفعة جديدة
+                </a>
+            </div>
+            <div class="card-body">
+                {% if batches %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم الدفعة</th>
+                                <th>تاريخ الاستلام</th>
+                                <th>العدد</th>
+                                <th>السائق</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for batch in batches %}
+                            <tr>
+                                <td>{{ batch.batch_name }}</td>
+                                <td>{{ batch.date }}</td>
+                                <td>{{ batch.quantity }}</td>
+                                <td>{{ batch.driver }}</td>
+                                <td>
+                                    <a href="{% url 'hatchery:batch_detail' batch.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:batch_update' batch.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:batch_delete' batch.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:incubation_create' batch.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-temperature-high"></i> تسكين
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد دفعات مسجلة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

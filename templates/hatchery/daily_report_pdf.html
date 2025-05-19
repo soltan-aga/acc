@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير اليومي - {{ report_date|date:"Y-m-d" }}</title>
+    <style>
+        
+        @font-face {
+            font-family: 'Cairo';
+            src: url('/static/fonts/Cairo-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'Cairo', 'Arial', sans-serif;
+            direction: rtl;
+            background-color: white;
+            color: black;
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+        }
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #4472C4;
+            color: white;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            background-color: #D9E1F2;
+            padding: 5px 10px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: center;
+            font-size: 10px;
+        }
+        th {
+            background-color: #4472C4;
+            color: white;
+            font-weight: bold;
+        }
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            width: 23%;
+            margin: 1%;
+            padding: 10px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .stat-box h3 {
+            margin: 0 0 5px 0;
+            font-size: 12px;
+        }
+        .stat-box p {
+            margin: 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+            color: #777;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 10px;
+            font-style: italic;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ report_title }} - {{ report_date|date:"Y-m-d" }}</h1>
+        </div>
+
+        <!-- ملخص الإحصائيات -->
+        <div class="section">
+            <div class="section-title">{{ summary_title }}</div>
+            <table>
+                <tr>
+                    <th>الدفعات الواردة</th>
+                    <th>الدفعات المسكنة</th>
+                    <th>الدفعات الخارجة</th>
+                    <th>الكتاكيت الموزعة</th>
+                </tr>
+                <tr>
+                    <td>{{ total_entries_count }}</td>
+                    <td>{{ total_incubations_count }}</td>
+                    <td>{{ total_hatchings_count.total_chicks|default:"0" }}</td>
+                    <td>{{ total_distributed_count }}</td>
+                </tr>
+            </table>
+            <table>
+                <tr>
+                    <th>الكتاكيت الفرزة</th>
+                    <th>المعدم</th>
+                    <th>الفرزة المباعة</th>
+                    <th>إيرادات التوزيع</th>
+                </tr>
+                <tr>
+                    <td>{{ total_hatchings_count.total_culled|default:"0" }}</td>
+                    <td>{{ total_hatchings_count.total_wasted|default:"0" }}</td>
+                    <td>{{ total_culled_sales_count }}</td>
+                    <td>{{ total_distributions_amount }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- الدفعات الواردة -->
+        <div class="section">
+            <div class="section-title">{{ entries_title }}</div>
+            {% if today_entries %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم الدفعة</th>
+                        <th>تاريخ الدخول</th>
+                        <th>الكمية</th>
+                        <th>المصدر</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in today_entries %}
+                    <tr>
+                        <td>{{ entry.batch_name }}</td>
+                        <td>{{ entry.date }}</td>
+                        <td>{{ entry.quantity }}</td>
+                        <td>{{ entry.source|default:"-" }}</td>
+                        <td>{{ entry.notes|default:"-"|truncatechars:30 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-message">{{ no_data_message }}</div>
+            {% endif %}
+        </div>
+
+        <!-- الدفعات المسكنة -->
+        <div class="section">
+            <div class="section-title">{{ incubations_title }}</div>
+            {% if today_incubations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم الدفعة</th>
+                        <th>تاريخ التسكين</th>
+                        <th>كمية التسكين</th>
+                        <th>المعدم</th>
+                        <th>تاريخ الخروج المتوقع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for incubation in today_incubations %}
+                    <tr>
+                        <td>{{ incubation.batch_entry.batch_name }}</td>
+                        <td>{{ incubation.incubation_date }}</td>
+                        <td>{{ incubation.incubation_quantity }}</td>
+                        <td>{{ incubation.damaged_quantity }}</td>
+                        <td>{{ incubation.expected_hatch_date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-message">{{ no_data_message }}</div>
+            {% endif %}
+        </div>
+
+        <!-- الدفعات الخارجة -->
+        <div class="section">
+            <div class="section-title">{{ hatchings_title }}</div>
+            {% if today_hatchings %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم الدفعة</th>
+                        <th>تاريخ الخروج</th>
+                        <th>الكتاكيت</th>
+                        <th>الفرزة</th>
+                        <th>الفاطس</th>
+                        <th>المعدم</th>
+                        <th>نسبة الإخصاب</th>
+                        <th>نسبة الفقس</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hatching in today_hatchings %}
+                    <tr>
+                        <td>{{ hatching.incubation.batch_entry.batch_name }}</td>
+                        <td>{{ hatching.hatch_date }}</td>
+                        <td>{{ hatching.chicks_count }}</td>
+                        <td>{{ hatching.culled_count }}</td>
+                        <td>{{ hatching.dead_count }}</td>
+                        <td>{{ hatching.wasted_count }}</td>
+                        <td>{{ hatching.fertility_rate }}%</td>
+                        <td>{{ hatching.hatch_rate }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-message">{{ no_data_message }}</div>
+            {% endif %}
+        </div>
+
+        <!-- توزيعات الدفعات -->
+        <div class="section">
+            <div class="section-title">{{ distributions_title }}</div>
+            {% if today_distributions %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>اسم الدفعة</th>
+                        <th>تاريخ التوزيع</th>
+                        <th>الكتاكيت الموزعة</th>
+                        <th>عدد العملاء</th>
+                        <th>المبلغ المدفوع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for distribution in today_distributions %}
+                    <tr>
+                        <td>{{ distribution.hatching.incubation.batch_entry.batch_name }}</td>
+                        <td>{{ distribution.distribution_date }}</td>
+                        <td>{{ distribution.total_distributed_count }}</td>
+                        <td>{{ distribution.distribution_items.count }}</td>
+                        <td>{{ distribution.total_paid_amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-message">{{ no_data_message }}</div>
+            {% endif %}
+        </div>
+
+        <!-- المطهرات الواردة والمنصرفة -->
+        <div class="section">
+            <div class="section-title">{{ received_disinfectants_title }} و {{ dispensed_disinfectants_title }}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>المطهر</th>
+                        <th>التصنيف</th>
+                        <th>نوع الحركة</th>
+                        <th>الكمية</th>
+                        <th>وحدة القياس</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in today_received_disinfectants %}
+                    <tr>
+                        <td>{{ transaction.disinfectant.name }}</td>
+                        <td>{{ transaction.disinfectant.category.name }}</td>
+                        <td>استلام</td>
+                        <td>{{ transaction.quantity }}</td>
+                        <td>{{ transaction.disinfectant.unit }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for transaction in today_dispensed_disinfectants %}
+                    <tr>
+                        <td>{{ transaction.disinfectant.name }}</td>
+                        <td>{{ transaction.disinfectant.category.name }}</td>
+                        <td>صرف</td>
+                        <td>{{ transaction.quantity }}</td>
+                        <td>{{ transaction.disinfectant.unit }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not today_received_disinfectants and not today_dispensed_disinfectants %}
+                    <tr>
+                        <td colspan="5" class="empty-message">{{ no_data_message }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- مبيعات الكتاكيت الفرزة -->
+        <div class="section">
+            <div class="section-title">{{ culled_sales_title }}</div>
+            {% if today_culled_sales %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>العميل</th>
+                        <th>الدفعة</th>
+                        <th>الكمية</th>
+                        <th>السعر</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in today_culled_sales %}
+                    <tr>
+                        <td>{{ sale.customer.name }}</td>
+                        <td>{{ sale.hatching.incubation.batch_entry.batch_name }}</td>
+                        <td>{{ sale.quantity }}</td>
+                        <td>{{ sale.price_per_unit }}</td>
+                        <td>{{ sale.total_amount }}</td>
+                        <td>{{ sale.paid_amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-message">{{ no_data_message }}</div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>{{ footer_message }} - {{ current_datetime|date:"Y-m-d H:i" }}</p>
+        </div>
+    </div>
+</body>
+</html>

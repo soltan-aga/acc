@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}تفاصيل الدفعة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">تفاصيل الدفعة {{ payment.number }}</h5>
+            <div>
+                {% if not payment.is_posted %}
+                <a href="{% url 'payment_post' payment.id %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-check"></i> ترحيل
+                </a>
+                {% else %}
+                <a href="{% url 'payment_unpost' payment.id %}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-undo"></i> إلغاء الترحيل
+                </a>
+                {% endif %}
+                <a href="{% url 'payment_list' %}" class="btn btn-light btn-sm">
+                    <i class="fas fa-arrow-right"></i> العودة للقائمة
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2">معلومات أساسية</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>رقم المستند:</th>
+                            <td>{{ payment.number }}</td>
+                        </tr>
+                        <tr>
+                            <th>التاريخ:</th>
+                            <td>{{ payment.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>نوع العملية:</th>
+                            <td>{{ payment.get_payment_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>المبلغ:</th>
+                            <td>{{ payment.amount }}</td>
+                        </tr>
+                        <tr>
+                            <th>الحالة:</th>
+                            <td>
+                                {% if payment.is_posted %}
+                                <span class="badge bg-success">مرحلة</span>
+                                {% else %}
+                                <span class="badge bg-warning">غير مرحلة</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2">معلومات إضافية</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>العميل/المورد:</th>
+                            <td>{{ payment.contact.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الخزنة:</th>
+                            <td>{{ payment.safe.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرقم المرجعي:</th>
+                            <td>{{ payment.reference_number|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>الفاتورة المرتبطة:</th>
+                            <td>{{ payment.invoice.number|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>ملاحظات:</th>
+                            <td>{{ payment.notes|default:"-" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

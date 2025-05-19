@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف إذن مخزني{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card">
+                <div class="card-header bg-danger">
+                    <h3 class="card-title">تأكيد الحذف</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h5><i class="icon fas fa-exclamation-triangle"></i> تحذير!</h5>
+                        <p>هل أنت متأكد من حذف الإذن المخزني التالي؟</p>
+                        <p>
+                            <strong>رقم الإذن:</strong> {{ permit.number }}<br>
+                            <strong>نوع الإذن:</strong> 
+                            {% if permit.permit_type == 'issue' %}
+                                إذن صرف
+                            {% else %}
+                                إذن استلام
+                            {% endif %}<br>
+                            <strong>التاريخ:</strong> {{ permit.date|date:"Y-m-d H:i" }}<br>
+                            <strong>المخزن:</strong> {{ permit.store.name }}<br>
+                            <strong>
+                                {% if permit.permit_type == 'issue' %}
+                                    المستلم:
+                                {% else %}
+                                    المرسل:
+                                {% endif %}
+                            </strong> {{ permit.person_name }}
+                        </p>
+                        <p class="text-danger">
+                            <strong>ملاحظة:</strong> سيتم حذف جميع البنود المرتبطة بهذا الإذن.
+                            {% if permit.is_posted %}
+                                <br>
+                                <strong>تنبيه:</strong> هذا الإذن مرحل وسيتم إلغاء ترحيله قبل الحذف.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> تأكيد الحذف
+                            </button>
+                            <a href="{% url 'store_permit_detail' permit.id %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

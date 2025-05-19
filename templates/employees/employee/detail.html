@@ -1,0 +1,290 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}{{ employee.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">بيانات الموظف: {{ employee.name }}</h1>
+        <div>
+            <a href="{% url 'employees:employee_edit' employee.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> تعديل
+            </a>
+            <a href="{% url 'employees:employee_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- بيانات الموظف الأساسية -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">البيانات الأساسية</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">الاسم</th>
+                                    <td>{{ employee.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الرقم القومي</th>
+                                    <td>{{ employee.national_id|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>رقم الهاتف</th>
+                                    <td dir="ltr">{{ employee.phone|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>العنوان</th>
+                                    <td>{{ employee.address|default:"-"|linebreaks }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- بيانات الموظف الوظيفية -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">البيانات الوظيفية</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tbody>
+                                <tr>
+                                    <th style="width: 30%">المسمى الوظيفي</th>
+                                    <td>{{ employee.job_title|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>القسم</th>
+                                    <td>{{ employee.department|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ التعيين</th>
+                                    <td>{{ employee.hire_date|date:"Y-m-d" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الراتب</th>
+                                    <td>{{ employee.salary }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الحالة</th>
+                                    <td>
+                                        {% if employee.status == 'active' %}
+                                            <span class="badge bg-success">نشط</span>
+                                        {% elif employee.status == 'inactive' %}
+                                            <span class="badge bg-danger">غير نشط</span>
+                                        {% elif employee.status == 'on_leave' %}
+                                            <span class="badge bg-warning">في إجازة</span>
+                                        {% else %}
+                                            {{ employee.status }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ملاحظات -->
+    {% if employee.notes %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">ملاحظات</h6>
+                </div>
+                <div class="card-body">
+                    {{ employee.notes|linebreaks }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- سجلات الحضور للشهر الحالي -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">سجلات الحضور للشهر الحالي</h6>
+                    <div>
+                        <a href="{% url 'employees:report_employee_attendance' employee.pk %}?print=1" target="_blank" class="btn btn-sm btn-info">
+                            <i class="fas fa-print"></i> طباعة التقرير
+                        </a>
+                        <a href="{% url 'employees:attendance_add' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> إضافة سجل حضور
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if attendance_records %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>الحالة</th>
+                                        <th>وقت الحضور</th>
+                                        <th>وقت الانصراف</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for record in attendance_records %}
+                                        <tr>
+                                            <td>{{ record.date|date:"Y-m-d" }}</td>
+                                            <td>
+                                                {% if record.status == 'present' %}
+                                                    <span class="badge bg-success">حاضر</span>
+                                                {% elif record.status == 'absent' %}
+                                                    <span class="badge bg-danger">غائب</span>
+                                                {% elif record.status == 'late' %}
+                                                    <span class="badge bg-warning">متأخر</span>
+                                                {% elif record.status == 'excuse' %}
+                                                    <span class="badge bg-info">إذن</span>
+                                                {% else %}
+                                                    {{ record.status }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ record.time_in|time|default:"-" }}</td>
+                                            <td>{{ record.time_out|time|default:"-" }}</td>
+                                            <td>{{ record.notes|default:"-" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد سجلات حضور لهذا الشهر
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- السلف النشطة -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">السلف النشطة</h6>
+                    <div>
+                        <a href="{% url 'employees:report_employee_loans' employee.pk %}?print=1" target="_blank" class="btn btn-sm btn-info">
+                            <i class="fas fa-print"></i> طباعة السلف
+                        </a>
+                        <a href="{% url 'employees:loan_add' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> إضافة سلفة
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if active_loans %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>المبلغ</th>
+                                        <th>الوصف</th>
+                                        <th>الخزنة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in active_loans %}
+                                        <tr>
+                                            <td>{{ loan.date|date:"Y-m-d" }}</td>
+                                            <td>{{ loan.amount }}</td>
+                                            <td>{{ loan.description|default:"-" }}</td>
+                                            <td>{{ loan.safe.name }}</td>
+                                            <td>
+                                                <a href="{% url 'employees:loan_detail' loan.pk %}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            لا توجد سلف نشطة لهذا الموظف
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- آخر راتب -->
+    {% if last_salary %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">آخر راتب</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>الشهر</th>
+                                    <th>السنة</th>
+                                    <th>الراتب الأساسي</th>
+                                    <th>الخصومات</th>
+                                    <th>خصم السلف</th>
+                                    <th>صافي الراتب</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ last_salary.get_month_display }}</td>
+                                    <td>{{ last_salary.year }}</td>
+                                    <td>{{ last_salary.base_salary }}</td>
+                                    <td>{{ last_salary.deductions }}</td>
+                                    <td>{{ last_salary.loans_deduction }}</td>
+                                    <td>{{ last_salary.net_salary }}</td>
+                                    <td>
+                                        {% if last_salary.is_posted %}
+                                            <span class="badge bg-success">تم الصرف</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">لم يتم الصرف</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'employees:salary_detail' last_salary.pk %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

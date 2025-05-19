@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الصفحة الرئيسية للمفرخة{% endblock %}
+
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>لوحة التحكم</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- إحصائيات الدفعات -->
+                    <div class="col-md-3 col-sm-6">
+                        <div class="dashboard-card">
+                            <div class="icon">
+                                <i class="fas fa-egg"></i>
+                            </div>
+                            <div class="count">{{ batch_count }}</div>
+                            <div class="title">إجمالي الدفعات</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="dashboard-card">
+                            <div class="icon">
+                                <i class="fas fa-temperature-high"></i>
+                            </div>
+                            <div class="count">{{ incubation_count }}</div>
+                            <div class="title">دفعات قيد التفريخ</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="dashboard-card">
+                            <div class="icon">
+                                <i class="fas fa-baby-carriage"></i>
+                            </div>
+                            <div class="count">{{ hatching_count }}</div>
+                            <div class="title">دفعات خرجت</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="dashboard-card">
+                            <div class="icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="count">{{ sales_count }}</div>
+                            <div class="title">عمليات البيع</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- الدفعات الجاهزة للخروج -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>دفعات جاهزة للخروج</h5>
+            </div>
+            <div class="card-body">
+                {% if ready_to_hatch %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم الدفعة</th>
+                                <th>تاريخ التسكين</th>
+                                <th>تاريخ الخروج المتوقع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for incubation in ready_to_hatch %}
+                            <tr>
+                                <td>{{ incubation.batch_entry.batch_name }}</td>
+                                <td>{{ incubation.incubation_date }}</td>
+                                <td>{{ incubation.expected_hatch_date }}</td>
+                                <td>
+                                    <a href="{% url 'hatchery:hatching_create' incubation.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus"></i> تسجيل خروج
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد دفعات جاهزة للخروج حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- المطهرات منخفضة المخزون -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-flask me-2"></i>مطهرات منخفضة المخزون</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_disinfectants %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم المطهر</th>
+                                <th>الرصيد الحالي</th>
+                                <th>الحد الأدنى</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for disinfectant in low_stock_disinfectants %}
+                            <tr>
+                                <td>{{ disinfectant.name }}</td>
+                                <td>{{ disinfectant.current_stock }} {{ disinfectant.unit }}</td>
+                                <td>{{ disinfectant.minimum_stock }} {{ disinfectant.unit }}</td>
+                                <td>
+                                    {% if disinfectant.stock_status == "نفذ" %}
+                                    <span class="status-out">نفذ</span>
+                                    {% else %}
+                                    <span class="status-low">منخفض</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مطهرات منخفضة المخزون حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- آخر عمليات البيع -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>آخر عمليات البيع</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sales %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>العميل</th>
+                                <th>تاريخ الفاتورة</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th>المدفوع</th>
+                                <th>المتبقي</th>
+                                <th>حالة الدفع</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td>{{ sale.customer }}</td>
+                                <td>{{ sale.invoice_date }}</td>
+                                <td>{{ sale.quantity }}</td>
+                                <td>{{ sale.price_per_unit }}</td>
+                                <td>{{ sale.total_amount }}</td>
+                                <td>{{ sale.paid_amount }}</td>
+                                <td>{{ sale.remaining_amount }}</td>
+                                <td>
+                                    {% if sale.remaining_amount <= 0 %}
+                                    <span class="badge bg-success">مدفوع بالكامل</span>
+                                    {% elif sale.paid_amount > 0 %}
+                                    <span class="badge bg-warning text-dark">مدفوع جزئياً</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">غير مدفوع</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد عمليات بيع حديثة</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

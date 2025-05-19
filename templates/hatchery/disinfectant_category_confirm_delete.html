@@ -1,0 +1,36 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}حذف تصنيف مطهر - {{ category.name }} - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-trash me-2"></i>حذف تصنيف مطهر</h4>
+            </div>
+            <div class="card-body">
+                <p class="alert alert-warning">
+                    هل أنت متأكد من رغبتك في حذف تصنيف المطهر "{{ category.name }}"؟
+                </p>
+                <p>
+                    <strong>ملاحظة:</strong> لا يمكن حذف التصنيف إذا كان مرتبطًا بمطهرات في المخزون.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hatchery:disinfectant_category_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> إلغاء
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i> حذف
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

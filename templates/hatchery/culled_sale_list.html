@@ -1,0 +1,86 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة مبيعات الفرزة - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>قائمة مبيعات الفرزة</h4>
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-plus me-1"></i> تسجيل مبيعات جديدة
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                        {% for hatching in available_hatchings %}
+                        <li><a class="dropdown-item" href="{% url 'hatchery:culled_sale_create' hatching.id %}">{{ hatching.incubation.batch_entry.batch_name }} ({{ hatching.hatch_date|date:"Y-m-d" }}) - متاح: {{ hatching.available_culled_count }}</a></li>
+                        {% empty %}
+                        <li><a class="dropdown-item disabled" href="#">لا توجد دفعات متاحة للبيع</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if sales %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>العميل</th>
+                                <th>الدفعة</th>
+                                <th>تاريخ الفاتورة</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th>المدفوع</th>
+                                <th>المتبقي</th>
+                                <th>حالة الدفع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in sales %}
+                            <tr>
+                                <td>{{ sale.customer }}</td>
+                                <td>{{ sale.hatching.incubation.batch_entry.batch_name }}</td>
+                                <td>{{ sale.invoice_date }}</td>
+                                <td>{{ sale.quantity }}</td>
+                                <td>{{ sale.price_per_unit }}</td>
+                                <td>{{ sale.total_amount }}</td>
+                                <td>{{ sale.paid_amount }}</td>
+                                <td>{{ sale.remaining_amount }}</td>
+                                <td>
+                                    {% if sale.remaining_amount <= 0 %}
+                                    <span class="badge bg-success">مدفوع بالكامل</span>
+                                    {% elif sale.paid_amount > 0 %}
+                                    <span class="badge bg-warning text-dark">مدفوع جزئياً</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">غير مدفوع</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'hatchery:culled_sale_detail' sale.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:culled_sale_update' sale.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:culled_sale_delete' sale.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مبيعات فرزة مسجلة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

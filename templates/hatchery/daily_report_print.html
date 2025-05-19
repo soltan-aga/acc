@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقرير اليومي - {{ report_date|date:"Y-m-d" }}</title>
+    <style>
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('/static/fonts/Tajawal-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('/static/fonts/Tajawal-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'Tajawal', 'Cairo', 'Arial', sans-serif;
+            direction: rtl;
+            background-color: white;
+            color: black;
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .print-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .print-header h2 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .print-section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .print-section-title {
+            background-color: #3498db;
+            color: white;
+            padding: 8px;
+            font-weight: bold;
+            margin-bottom: 0;
+            text-align: center;
+            border-bottom: 2px solid #2980b9;
+            font-size: 14px;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+            table-layout: fixed;
+        }
+
+        .print-table th {
+            background-color: #34495e;
+            color: white;
+            padding: 6px 4px;
+            text-align: center;
+            border: 1px solid #2c3e50;
+            font-size: 12px;
+            word-wrap: break-word;
+        }
+
+        .print-table td {
+            padding: 5px 3px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 11px;
+            word-wrap: break-word;
+        }
+
+        .print-table tr:nth-child(even) {
+            background-color: #ecf0f1;
+        }
+
+        .print-table tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        .print-table tr:hover {
+            background-color: #e8f4fc;
+        }
+
+        .print-footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 10px;
+            color: #555;
+            border-top: 2px solid #3498db;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 10px;
+            color: #7f8c8d;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin: 8px 0;
+            border-left: 4px solid #3498db;
+            font-size: 11px;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .summary-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .summary-box {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            width: 48%;
+            box-sizing: border-box;
+        }
+
+        .summary-box h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 12px;
+        }
+
+        .summary-box p {
+            margin: 3px 0;
+            font-size: 11px;
+        }
+
+        .summary-box .count {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4a76c9;
+        }
+
+        .summary-box .label {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .print-controls {
+            margin-bottom: 20px;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+
+        @media print {
+            .print-controls {
+                display: none !important;
+            }
+
+            body {
+                font-size: 12px;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
+
+            .print-header, .print-section-title, .print-table th {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .print-table tr:nth-child(even), .print-table tr:nth-child(odd) {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .print-table th {
+                padding: 8px 4px;
+                font-size: 12px;
+            }
+
+            .print-table td {
+                padding: 6px 4px;
+                font-size: 11px;
+            }
+
+            .print-section-title {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            .print-header h2 {
+                font-size: 18px;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="print-controls no-print">
+        <button onclick="window.print()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin-right: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <span style="margin-left: 5px;">&#128424;</span> طباعة التقرير
+        </button>
+        <a href="/hatchery/daily_report/?date={{ report_date|date:'Y-m-d' }}" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;">
+            <span style="margin-left: 5px;">&#8592;</span> العودة
+        </a>
+    </div>
+
+    <div class="print-header">
+        <h2 style="margin: 0; font-size: 24px;">
+            <span style="margin-left: 10px;">&#128202;</span>
+            التقرير اليومي - {{ report_date|date:"Y-m-d" }}
+        </h2>
+    </div>
+
+    <!-- تم إزالة ملخص الإحصائيات بناءً على طلب المستخدم -->
+
+    <!-- الدفعات الواردة -->
+    <div class="print-section">
+        <div class="print-section-title">الدفعات الواردة المسجلة اليوم</div>
+        {% if today_entries %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ الدخول</th>
+                    <th>الكمية</th>
+                    <th>السائق</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in today_entries %}
+                <tr>
+                    <td>{{ entry.batch_name.name }}</td>
+                    <td>{{ entry.date|date:"Y-m-d" }}</td>
+                    <td>{{ entry.quantity }}</td>
+                    <td>{{ entry.driver|default:"-" }}</td>
+                    <td>{{ entry.notes|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد دفعات واردة مسجلة اليوم</div>
+        {% endif %}
+    </div>
+
+    <!-- الدفعات المسكنة -->
+    <div class="print-section">
+        <div class="print-section-title">الدفعات التي تم تسكينها اليوم</div>
+        {% if today_incubations %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ التسكين</th>
+                    <th>الكمية</th>
+                    <th>الفاقد</th>
+                    <th>تاريخ الخروج المتوقع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for incubation in today_incubations %}
+                <tr>
+                    <td>{{ incubation.batch_entry.batch_name.name }}</td>
+                    <td>{{ incubation.incubation_date|date:"Y-m-d" }}</td>
+                    <td>{{ incubation.incubation_quantity }}</td>
+                    <td>{{ incubation.damaged_quantity }}</td>
+                    <td>{{ incubation.expected_hatch_date|date:"Y-m-d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد دفعات تم تسكينها اليوم</div>
+        {% endif %}
+    </div>
+
+    <!-- الدفعات الخارجة -->
+    <div class="print-section">
+        <div class="print-section-title">الدفعات التي خرجت اليوم</div>
+        {% if today_hatchings %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ الوارد</th>
+                    <th>تاريخ الخروج</th>
+                    <th>الكتاكيت</th>
+                    <th>الفرزة</th>
+                    <th>الفاطس</th>
+                    <th>المعدم</th>
+                    <th>نسبة الإخصاب</th>
+                    <th>نسبة الفقس</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hatching in today_hatchings %}
+                <tr>
+                    <td>{{ hatching.incubation.batch_entry.batch_name.name }}</td>
+                    <td>{{ hatching.incubation.batch_entry.date|date:"Y-m-d" }}</td>
+                    <td>{{ hatching.hatch_date|date:"Y-m-d" }}</td>
+                    <td>{{ hatching.chicks_count }}</td>
+                    <td>{{ hatching.culled_count }}</td>
+                    <td>{{ hatching.dead_count }}</td>
+                    <td>{{ hatching.wasted_count }}</td>
+                    <td>{{ hatching.fertility_rate }}%</td>
+                    <td>{{ hatching.hatch_rate }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد دفعات خرجت اليوم</div>
+        {% endif %}
+    </div>
+
+    <!-- توزيعات الدفعات -->
+    <div class="print-section">
+        <div class="print-section-title">توزيعات الدفعات اليوم</div>
+        {% if today_distributions %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ التوزيع</th>
+                    <th>الكتاكيت الموزعة</th>
+                    <th>عدد العملاء</th>
+                    <th>المبلغ المدفوع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for distribution in today_distributions %}
+                <tr>
+                    <td>{{ distribution.hatching.incubation.batch_entry.batch_name.name }}</td>
+                    <td>{{ distribution.distribution_date|date:"Y-m-d" }}</td>
+                    <td>{{ distribution.total_distributed_count }}</td>
+                    <td>{{ distribution.distribution_items.count }}</td>
+                    <td>{{ distribution.total_paid_amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد توزيعات دفعات اليوم</div>
+        {% endif %}
+    </div>
+
+    <div class="page-break"></div>
+    <!-- المطهرات الواردة -->
+    <div class="print-section">
+        <div class="print-section-title">المطهرات الواردة اليوم</div>
+        {% if today_received_disinfectants %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>المطهر</th>
+                    <th>التصنيف</th>
+                    <th>الكمية</th>
+                    <th>وحدة القياس</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in today_received_disinfectants %}
+                <tr>
+                    <td>{{ transaction.disinfectant.name }}</td>
+                    <td>{{ transaction.disinfectant.category.name }}</td>
+                    <td>{{ transaction.quantity }}</td>
+                    <td>{{ transaction.disinfectant.unit }}</td>
+                    <td>{{ transaction.notes|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد مطهرات واردة اليوم</div>
+        {% endif %}
+    </div>
+
+    <div class="page-break"></div>
+    <!-- المطهرات المنصرفة -->
+    <div class="print-section">
+        <div class="print-section-title">المطهرات المنصرفة اليوم</div>
+        {% if today_dispensed_disinfectants %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>المطهر</th>
+                    <th>التصنيف</th>
+                    <th>الكمية</th>
+                    <th>وحدة القياس</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in today_dispensed_disinfectants %}
+                <tr>
+                    <td>{{ transaction.disinfectant.name }}</td>
+                    <td>{{ transaction.disinfectant.category.name }}</td>
+                    <td>{{ transaction.quantity }}</td>
+                    <td>{{ transaction.disinfectant.unit }}</td>
+                    <td>{{ transaction.notes|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد مطهرات منصرفة اليوم</div>
+        {% endif %}
+    </div>
+
+    <div class="page-break"></div>
+    <!-- مبيعات الكتاكيت الفرزة -->
+    <div class="print-section">
+        <div class="print-section-title">مبيعات الكتاكيت الفرزة اليوم</div>
+        {% if today_culled_sales %}
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>العميل</th>
+                    <th>الدفعة</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الإجمالي</th>
+                    <th>المدفوع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in today_culled_sales %}
+                <tr>
+                    <td>{{ sale.customer.name }}</td>
+                    <td>{{ sale.hatching.incubation.batch_entry.batch_name.name }}</td>
+                    <td>{{ sale.quantity }}</td>
+                    <td>{{ sale.price_per_unit }}</td>
+                    <td>{{ sale.total_amount }}</td>
+                    <td>{{ sale.paid_amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-message">لا توجد مبيعات كتاكيت فرزة اليوم</div>
+        {% endif %}
+    </div>
+
+    <div class="print-footer">
+        <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl; font-size: 10px;">
+            <div>
+                <span style="margin-left: 3px;">&#128197;</span>
+                تاريخ التقرير: {{ report_date|date:"Y-m-d" }}
+            </div>
+            <div>
+                <span style="margin-left: 3px;">&#128336;</span>
+                وقت الإنشاء: {{ current_datetime|date:"H:i" }}
+            </div>
+            <div>
+                <span style="margin-left: 3px;">&#128187;</span>
+                نظام إدارة معامل التفريخ
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تنفيذ الطباعة تلقائياً عند تحميل الصفحة في وضع الطباعة
+    if (window.location.href.includes('export=print')) {
+        window.addEventListener('load', function() {
+            // تأخير قليل للتأكد من تحميل الصفحة بالكامل
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+    }
+</script>
+</body>
+</html>

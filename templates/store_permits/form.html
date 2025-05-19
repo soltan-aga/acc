@@ -1,0 +1,982 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+<style>
+    /* تنسيق قائمة البحث */
+    .select2-container--bootstrap-5 .select2-selection {
+        border: 1px solid #ced4da;
+        padding: 0.375rem 0.75rem;
+        height: auto;
+        min-height: 38px;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0;
+    }
+
+    .select2-container--bootstrap-5 .select2-dropdown {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    /* تحسين مظهر حقول السائق والمندوب والمخزن */
+    .driver-select, .representative-select, .store-select {
+        width: 100% !important;
+    }
+
+    /* تأكد من أن حاويات Select2 مرئية بشكل صحيح */
+    .select2-container {
+        z-index: 1050;
+        display: block !important;
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">{{ title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="permitForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <!-- بيانات الإذن الرئيسية -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.permit_type.id_for_label }}">نوع الإذن</label>
+                                    {% if permit_type %}
+                                        {% if permit_type == 'issue' %}
+                                            <input type="text" class="form-control" value="إذن صرف" readonly>
+                                            <input type="hidden" name="{{ form.permit_type.name }}" value="issue">
+                                        {% else %}
+                                            <input type="text" class="form-control" value="إذن استلام" readonly>
+                                            <input type="hidden" name="{{ form.permit_type.name }}" value="receive">
+                                        {% endif %}
+                                    {% else %}
+                                        {{ form.permit_type }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.store.id_for_label }}">المخزن</label>
+                                    {{ form.store }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.date.id_for_label }}">التاريخ</label>
+                                    {{ form.date }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.person_name.id_for_label }}">
+                                        {% if permit_type == 'issue' %}
+                                            المستلم
+                                        {% elif permit_type == 'receive' %}
+                                            المرسل
+                                        {% else %}
+                                            اسم الشخص
+                                        {% endif %}
+                                    </label>
+                                    {{ form.person_name }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.driver.id_for_label }}">السائق</label>
+                                    {{ form.driver }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.representative.id_for_label }}">المندوب</label>
+                                    {{ form.representative }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.reference_number.id_for_label }}">الرقم المرجعي</label>
+                                    {{ form.reference_number }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        {{ form.is_posted }}
+                                        <label class="form-check-label" for="{{ form.is_posted.id_for_label }}">
+                                            ترحيل تلقائي
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="{{ form.notes.id_for_label }}">ملاحظات</label>
+                                    {{ form.notes }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- بنود الإذن -->
+                        <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                            <h4 class="mb-0">بنود الإذن</h4>
+                            <div class="keyboard-shortcuts small text-muted">
+                                <span class="badge bg-light text-dark me-2" title="إضافة بند جديد"><i class="fas fa-plus"></i> إضافة بند</span>
+                                <span class="badge bg-light text-dark me-2" title="حفظ الإذن"><i class="fas fa-save"></i> F12</span>
+                                <span class="badge bg-light text-dark" title="التنقل بين الحقول"><i class="fas fa-arrow-right"></i> <i class="fas fa-arrow-left"></i></span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الوحدة</th>
+                                        <th>الكمية</th>
+                                        <th>ملاحظات</th>
+                                        <th>حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{ formset.management_form }}
+                                    {% for form in formset %}
+                                        <tr class="item-form">
+                                            <td>
+                                                {{ form.id }}
+                                                {{ form.product }}
+                                            </td>
+                                            <td>{{ form.product_unit }}</td>
+                                            <td>{{ form.quantity }}</td>
+                                            <td>{{ form.notes }}</td>
+                                            <td>
+                                                {% if form.instance.pk %}
+                                                    {{ form.DELETE }}
+                                                    <label for="{{ form.DELETE.id_for_label }}" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </label>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-sm btn-danger remove-form">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="5">
+                                            <button type="button" class="btn btn-success" id="add-item">
+                                                <i class="fas fa-plus"></i> إضافة بند
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <button type="submit" id="submitBtn" class="btn btn-primary">حفظ</button>
+                                <a href="{% url 'store_permit_list' %}" class="btn btn-secondary">إلغاء</a>
+                                <div id="validationErrors" class="alert alert-danger mt-3" style="display: none;">
+                                    <ul id="errorList"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        console.log('=== بدء تهيئة صفحة إذن المخزن ===');
+
+        // دالة لتنظيف أي عناصر Select2 مكررة
+        function cleanupDuplicateSelect2() {
+            console.log('تنظيف عناصر Select2 المكررة...');
+
+            // إزالة جميع حاويات Select2 الزائدة
+            $('.select2-container').each(function() {
+                const $container = $(this);
+                const selectId = $container.attr('data-select2-id');
+
+                // التحقق من وجود عنصر select مرتبط بهذه الحاوية
+                if (selectId && $('select[data-select2-id="' + selectId + '"]').length === 0) {
+                    // تم تعطيل رسائل التصحيح لتجنب ملء وحدة التحكم
+                    // console.log('إزالة حاوية Select2 غير مرتبطة:', selectId);
+                    $container.remove();
+                }
+            });
+
+            // التأكد من أن كل عنصر select له حاوية واحدة فقط
+            $('select.product-select, select.product-unit-select').each(function() {
+                const $select = $(this);
+                const selectId = $select.attr('id');
+
+                // عدد الحاويات المرتبطة بهذا العنصر
+                const containers = $('.select2-container[data-select2-id="' + selectId + '"]');
+
+                if (containers.length > 1) {
+                    // تم تعطيل رسائل التصحيح لتجنب ملء وحدة التحكم
+                    // console.log('وجدنا ' + containers.length + ' حاوية لـ ' + selectId);
+                    // إزالة جميع الحاويات ما عدا الأخيرة
+                    containers.slice(0, -1).remove();
+                }
+
+                // التأكد من أن العنصر يعمل
+                if ($select.hasClass('select2-hidden-accessible') &&
+                    $('.select2-container[data-select2-id="' + selectId + '"]').length === 0) {
+                    // تم تعطيل رسائل التصحيح لتجنب ملء وحدة التحكم
+                    // console.log('إعادة تهيئة Select2 لـ:', selectId);
+                    // إعادة تهيئة Select2 إذا كان العنصر غير مرتبط بحاوية
+                    $select.select2('destroy').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'اختر...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                }
+            });
+        }
+
+        // إضافة اختصارات لوحة المفاتيح
+        $(document).keydown(function(e) {
+            console.log('مفتاح مضغوط:', e.key, 'كود المفتاح:', e.keyCode, 'الحقل النشط:', document.activeElement.tagName);
+
+            // مفتاح + لإضافة بند جديد (رمز 107 للمفتاح + في لوحة الأرقام، ورمز 187 للمفتاح + العادي)
+            if ((e.keyCode === 107 || (e.keyCode === 187 && e.shiftKey)) && !$(document.activeElement).is('input[type=text], input[type=number], textarea, select')) {
+                e.preventDefault();
+                console.log('اختصار إضافة بند جديد');
+                addNewItem();
+                return false;
+            }
+
+            // مفتاح F12 لحفظ الإذن
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                console.log('اختصار حفظ الإذن');
+                $('#permitForm').submit();
+                return false;
+            }
+
+            // التنقل بين حقول البند باستخدام مفاتيح الأسهم
+            if ($(document.activeElement).closest('.item-form').length > 0) {
+                var currentRow = $(document.activeElement).closest('.item-form');
+                var currentField = $(document.activeElement);
+                var currentIndex = -1;
+
+                // تحديد الحقول القابلة للتركيز في الصف الحالي
+                var focusableFields = currentRow.find('select, input').filter(':visible:not([readonly])');
+
+                // تحديد موقع الحقل الحالي
+                focusableFields.each(function(index) {
+                    if (this === document.activeElement || $(this).has(document.activeElement).length > 0) {
+                        currentIndex = index;
+                        return false;
+                    }
+                });
+
+                // مفتاح السهم الأيمن (للانتقال للحقل السابق في واجهة عربية)
+                if (e.keyCode === 39 && currentIndex > 0) {
+                    e.preventDefault();
+                    var prevField = focusableFields.eq(currentIndex - 1);
+
+                    // التعامل مع حقول Select2
+                    if (prevField.hasClass('select2-hidden-accessible')) {
+                        prevField.select2('focus');
+                    } else {
+                        prevField.focus();
+                    }
+
+                    return false;
+                }
+
+                // مفتاح السهم الأيسر (للانتقال للحقل التالي في واجهة عربية)
+                if (e.keyCode === 37 && currentIndex < focusableFields.length - 1) {
+                    e.preventDefault();
+                    var nextField = focusableFields.eq(currentIndex + 1);
+
+                    // التعامل مع حقول Select2
+                    if (nextField.hasClass('select2-hidden-accessible')) {
+                        nextField.select2('focus');
+                    } else {
+                        nextField.focus();
+                    }
+
+                    return false;
+                }
+            }
+        });
+
+        // إزالة أي تهيئة سابقة لـ Select2
+        $('select').each(function() {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+        });
+
+        // إضافة الفئات المطلوبة لحقول المنتج والوحدة
+        $('select[id$="-product"]').addClass('product-select');
+        $('select[id$="-product_unit"]').addClass('product-unit-select');
+
+        // إضافة الفئات المطلوبة لحقول السائق والمندوب والمخزن
+        $('#id_driver').addClass('driver-select');
+        $('#id_representative').addClass('representative-select');
+        $('#id_store').addClass('store-select');
+
+        console.log('عدد حقول المنتج:', $('.product-select').length);
+        console.log('عدد حقول الوحدة:', $('.product-unit-select').length);
+        console.log('حقل السائق:', $('#id_driver').length > 0 ? 'موجود' : 'غير موجود');
+        console.log('حقل المندوب:', $('#id_representative').length > 0 ? 'موجود' : 'غير موجود');
+        console.log('حقل المخزن:', $('#id_store').length > 0 ? 'موجود' : 'غير موجود');
+
+        // تأخير تهيئة Select2 للتأكد من أن DOM جاهز
+        setTimeout(function() {
+            // تهيئة Select2 للمنتجات
+            $('.product-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر المنتج أو ابحث...',
+                allowClear: true,
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function() {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+
+            // تهيئة Select2 للوحدات
+            $('.product-unit-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر الوحدة...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // تهيئة Select2 لحقل السائق
+            $('.driver-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر السائق...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // تهيئة Select2 لحقل المندوب
+            $('.representative-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر المندوب...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // تهيئة Select2 لحقل المخزن
+            $('.store-select').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر المخزن...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            // تهيئة Select2 للحقول الأخرى
+            $('.form-select:not(.product-select):not(.product-unit-select):not(.driver-select):not(.representative-select):not(.store-select)').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'اختر...',
+                allowClear: true,
+                width: '100%'
+            });
+
+            console.log('تم تهيئة جميع حقول Select2');
+
+            // تنظيف أي عناصر مكررة
+            cleanupDuplicateSelect2();
+
+            // إعادة تهيئة حقول السائق والمندوب للتأكد من ظهورها بشكل صحيح
+            setTimeout(function() {
+                console.log('إعادة تهيئة حقول السائق والمندوب...');
+
+                // التحقق من وجود الحقول
+                if ($('#id_driver').length > 0) {
+                    if ($('#id_driver').hasClass('select2-hidden-accessible')) {
+                        $('#id_driver').select2('destroy');
+                    }
+                    $('#id_driver').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'اختر السائق...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    console.log('تم إعادة تهيئة حقل السائق');
+                }
+
+                if ($('#id_representative').length > 0) {
+                    if ($('#id_representative').hasClass('select2-hidden-accessible')) {
+                        $('#id_representative').select2('destroy');
+                    }
+                    $('#id_representative').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'اختر المندوب...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    console.log('تم إعادة تهيئة حقل المندوب');
+                }
+
+                // إعادة تهيئة حقل المخزن
+                if ($('#id_store').length > 0) {
+                    if ($('#id_store').hasClass('select2-hidden-accessible')) {
+                        $('#id_store').select2('destroy');
+                    }
+                    $('#id_store').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'اختر المخزن...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    console.log('تم إعادة تهيئة حقل المخزن');
+                }
+            }, 500);
+        }, 100);
+
+        // الحصول على عدد النماذج الحالية
+        let formCount = parseInt($('#id_items-TOTAL_FORMS').val());
+        const maxForms = parseInt($('#id_items-MAX_NUM_FORMS').val());
+
+        // حفظ نسخة من النموذج الأول للاستخدام لاحقًا
+        // نستخدم HTML للنموذج بدلاً من كائن jQuery لتجنب مشاكل الدوبليكاشن
+        const formTemplateHtml = $('.item-form:first').prop('outerHTML');
+
+        // دالة التحقق من صحة البنود
+        function validateItems() {
+            let isValid = true;
+            let errors = [];
+            let emptyRows = 0;
+
+            // التحقق من كل صف
+            $('.item-form').each(function(index) {
+                const row = $(this);
+                const productSelect = row.find('select[id$="-product"]');
+                const unitSelect = row.find('select[id$="-product_unit"]');
+                const quantityInput = row.find('input[id$="-quantity"]');
+
+                const product = productSelect.val();
+                let unit = unitSelect.val(); // Cambiado de const a let para poder modificarlo
+                const quantity = parseFloat(quantityInput.val()) || 0;
+
+                // إذا كانت جميع الحقول فارغة، نعتبر الصف فارغًا
+                if (!product && !unit && quantity === 0) {
+                    emptyRows++;
+                    return; // استمر في الحلقة
+                }
+
+                // التحقق من وجود المنتج
+                if (!product) {
+                    isValid = false;
+                    errors.push(`البند #${index + 1}: يجب اختيار المنتج`);
+                    productSelect.closest('td').addClass('has-error');
+                } else {
+                    productSelect.closest('td').removeClass('has-error');
+                }
+
+                // التحقق من وجود الوحدة
+                if (!unit) {
+                    // إذا كان هناك منتج محدد، نحاول تحديد وحدة افتراضية
+                    if (product) {
+                        try {
+                            // استخراج رقم الصف من معرف حقل المنتج
+                            const productSelectId = productSelect.attr('id');
+                            const rowIndex = productSelectId ? productSelectId.match(/-(\d+)-/)[1] : '0';
+
+                            // طلب وحدات المنتج بشكل متزامن
+                            $.ajax({
+                                url: '/products/api/product/' + product + '/units/',
+                                type: 'GET',
+                                dataType: 'json',
+                                async: false, // مهم: جعل الطلب متزامنًا
+                                success: function(data) {
+                                    if (data && data.length > 0) {
+                                        // اختيار الوحدة الافتراضية أو الأولى
+                                        let defaultUnit = data.find(u => u.is_default_sale);
+                                        if (!defaultUnit) {
+                                            defaultUnit = data.find(u => u.is_default_purchase);
+                                        }
+
+                                        if (defaultUnit) {
+                                            unitSelect.val(defaultUnit.id);
+                                            unit = defaultUnit.id;
+                                        } else {
+                                            unitSelect.val(data[0].id);
+                                            unit = data[0].id;
+                                        }
+
+                                        console.log('تم تعيين وحدة افتراضية للمنتج:', product, 'الوحدة:', unit);
+                                        unitSelect.trigger('change');
+
+                                        // تحديث قيمة الحقل المخفي إذا كان موجودًا
+                                        const hiddenInput = row.find(`input[name$="-${rowIndex}-product_unit"]`);
+                                        if (hiddenInput.length > 0) {
+                                            hiddenInput.val(unit);
+                                        }
+                                    }
+                                }
+                            });
+                        } catch (e) {
+                            console.error('خطأ أثناء محاولة تعيين وحدة افتراضية:', e);
+                        }
+                    }
+
+                    // إذا لم نتمكن من تحديد وحدة افتراضية
+                    if (!unit) {
+                        isValid = false;
+                        errors.push(`البند #${index + 1}: يجب اختيار وحدة المنتج`);
+                        unitSelect.closest('td').addClass('has-error');
+                    } else {
+                        unitSelect.closest('td').removeClass('has-error');
+                    }
+                } else {
+                    unitSelect.closest('td').removeClass('has-error');
+                }
+
+                // التحقق من الكمية
+                if (quantity <= 0) {
+                    isValid = false;
+                    errors.push(`البند #${index + 1}: يجب إدخال كمية أكبر من صفر`);
+                    quantityInput.closest('td').addClass('has-error');
+                } else {
+                    quantityInput.closest('td').removeClass('has-error');
+                }
+            });
+
+            // التحقق من وجود بند واحد على الأقل
+            if ($('.item-form').length === emptyRows) {
+                isValid = false;
+                errors.push('يجب إضافة بند واحد على الأقل');
+            }
+
+            return {
+                isValid: isValid,
+                errors: errors
+            };
+        }
+
+        // دالة إضافة بند جديد
+        function addNewItem() {
+            // التحقق من صحة البنود الحالية قبل إضافة بند جديد
+            const validation = validateItems();
+
+            // إذا كانت هناك أخطاء، نعرضها ولا نضيف بندًا جديدًا
+            if (!validation.isValid) {
+                showValidationErrors(validation.errors);
+                return null;
+            }
+
+            if (formCount < maxForms) {
+                console.log('بدء إضافة بند جديد، عدد البنود الحالية:', formCount);
+
+                console.log('نسخ النموذج الأول...');
+
+                // إنشاء نموذج جديد من HTML
+                let newFormHtml = formTemplateHtml;
+
+                // تحديث معرفات الحقول في HTML
+                newFormHtml = newFormHtml.replace(/-0-/g, '-' + formCount + '-');
+                newFormHtml = newFormHtml.replace(/id_items-0-/g, 'id_items-' + formCount + '-');
+
+                console.log('تم تحديث معرفات الحقول في النموذج الجديد');
+
+                // إضافة النموذج الجديد
+                $('#items-table tbody').append(newFormHtml);
+
+                // الحصول على الصف الجديد كعنصر jQuery
+                const newForm = $('.item-form').last();
+                formCount++;
+                $('#id_items-TOTAL_FORMS').val(formCount);
+                console.log('تم زيادة عدد النماذج إلى:', formCount);
+
+                // تنظيف أي عناصر Select2 مكررة قبل إضافة العناصر الجديدة
+                cleanupDuplicateSelect2();
+
+                // تحديد حقول المنتج والوحدة في الصف الجديد
+                const productSelect = newForm.find('select[id$="-product"]');
+                const unitSelect = newForm.find('select[id$="-product_unit"]');
+
+                console.log('تم إضافة صف جديد:');
+                console.log('- حقل المنتج:', productSelect.attr('id'));
+                console.log('- حقل الوحدة:', unitSelect.attr('id'));
+
+                // إزالة أي نسخ من Select2 قد تكون موجودة
+                if (productSelect.hasClass('select2-hidden-accessible')) {
+                    console.log('تدمير Select2 الحالي لحقل المنتج');
+                    productSelect.select2('destroy');
+                }
+
+                if (unitSelect.hasClass('select2-hidden-accessible')) {
+                    console.log('تدمير Select2 الحالي لحقل الوحدة');
+                    unitSelect.select2('destroy');
+                }
+
+                // إضافة الفئات المطلوبة
+                productSelect.addClass('product-select');
+                unitSelect.addClass('product-unit-select');
+
+                // نسخ خيارات المنتجات من الحقل الأول
+                const firstProductSelect = $('.product-select').first();
+
+                // نحتفظ بالخيارات الأصلية للمنتجات
+                // لا نقوم بتفريغ حقل المنتج لأننا نريد الاحتفاظ بالخيارات الموجودة
+
+                // تفريغ حقل الوحدة فقط
+                unitSelect.empty().append('<option value=""></option>');
+
+                // تأخير تهيئة Select2 للتأكد من أن DOM قد تم تحديثه
+                setTimeout(function() {
+                    console.log('بدء تهيئة Select2 للعناصر الجديدة...');
+
+                    try {
+                        // تهيئة Select2 للعناصر الجديدة
+                        productSelect.select2({
+                            theme: 'bootstrap-5',
+                            placeholder: 'اختر المنتج أو ابحث...',
+                            allowClear: true,
+                            width: '100%',
+                            language: {
+                                noResults: function() {
+                                    return "لا توجد نتائج";
+                                },
+                                searching: function() {
+                                    return "جاري البحث...";
+                                }
+                            }
+                        });
+
+                        unitSelect.select2({
+                            theme: 'bootstrap-5',
+                            placeholder: 'اختر الوحدة...',
+                            allowClear: true,
+                            width: '100%'
+                        });
+
+                        console.log('تم تهيئة Select2 للحقول الجديدة بنجاح');
+                    } catch (e) {
+                        console.error('حدث خطأ أثناء تهيئة Select2:', e);
+                    }
+                }, 100);
+
+                // إضافة معالج حدث للزر حذف
+                newForm.find('.remove-form').on('click', function() {
+                    removeItem($(this));
+                });
+
+                // إخفاء رسائل الخطأ
+                hideValidationErrors();
+
+                // التركيز على حقل المنتج في الصف الجديد بعد تهيئة Select2
+                setTimeout(function() {
+                    // تنظيف مرة أخرى بعد التهيئة
+                    cleanupDuplicateSelect2();
+
+                    // التركيز على حقل المنتج
+                    try {
+                        productSelect.select2('focus');
+                    } catch (e) {
+                        console.error('خطأ في التركيز على حقل المنتج:', e);
+                    }
+                }, 200);
+
+                return newForm;
+            }
+            return null;
+        }
+
+        // عرض أخطاء التحقق
+        function showValidationErrors(errors) {
+            const errorList = $('#errorList');
+            errorList.empty();
+
+            errors.forEach(function(error) {
+                errorList.append(`<li>${error}</li>`);
+            });
+
+            $('#validationErrors').show();
+        }
+
+        // إخفاء أخطاء التحقق
+        function hideValidationErrors() {
+            $('#validationErrors').hide();
+            $('#errorList').empty();
+            $('.has-error').removeClass('has-error');
+        }
+
+        // دالة حذف بند
+        function removeItem(button) {
+            if (formCount > 1) {
+                const row = button.closest('tr');
+                row.remove();
+                formCount--;
+                $('#id_items-TOTAL_FORMS').val(formCount);
+                console.log('تم حذف صف، عدد البنود الحالية:', formCount);
+
+                // إعادة ترقيم النماذج
+                $('.item-form').each(function(index) {
+                    $(this).find(':input').each(function() {
+                        const name = $(this).attr('name');
+                        if (name) {
+                            const newName = name.replace(/-\d+-/, '-' + index + '-');
+                            $(this).attr('name', newName);
+                            $(this).attr('id', 'id_' + newName);
+                        }
+                    });
+                });
+            }
+        }
+
+        // ربط زر إضافة بند بالدالة
+        $('#add-item').click(function() {
+            addNewItem();
+        });
+
+        // ربط أزرار الحذف الموجودة بدالة الحذف
+        $('.remove-form').click(function() {
+            removeItem($(this));
+        });
+
+        // التحقق من صحة النموذج قبل الإرسال
+        $('#permitForm').on('submit', function(e) {
+            // إخفاء رسائل الخطأ السابقة
+            hideValidationErrors();
+
+            // التحقق من صحة البنود
+            const validation = validateItems();
+
+            // إذا كانت هناك أخطاء، منع إرسال النموذج وعرض الأخطاء
+            if (!validation.isValid) {
+                e.preventDefault();
+                showValidationErrors(validation.errors);
+                return false;
+            }
+
+            // التأكد من أن جميع حقول وحدات المنتج تحتوي على قيم صحيحة
+            $('.item-form').each(function() {
+                const productSelect = $(this).find('select[id$="-product"]');
+                const unitSelect = $(this).find('select[id$="-product_unit"]');
+
+                // إذا تم اختيار منتج ولكن لم يتم اختيار وحدة
+                if (productSelect.val() && !unitSelect.val()) {
+                    // محاولة تحديد الوحدة الافتراضية
+                    const productId = productSelect.val();
+
+                    // طلب وحدات المنتج بشكل متزامن
+                    $.ajax({
+                        url: '/products/api/product/' + productId + '/units/',
+                        type: 'GET',
+                        dataType: 'json',
+                        async: false, // مهم: جعل الطلب متزامنًا
+                        success: function(data) {
+                            if (data && data.length > 0) {
+                                // اختيار الوحدة الافتراضية أو الأولى
+                                const defaultUnit = data.find(u => u.is_default_sale || u.is_default_purchase);
+                                if (defaultUnit) {
+                                    unitSelect.val(defaultUnit.id);
+                                } else {
+                                    unitSelect.val(data[0].id);
+                                }
+                                console.log('تم تعيين وحدة افتراضية للمنتج:', productId, 'الوحدة:', unitSelect.val());
+                            }
+                        }
+                    });
+                }
+            });
+
+            // إذا كان النموذج صحيحًا، السماح بإرساله
+            return true;
+        });
+
+        // إضافة نمط CSS للحقول التي بها أخطاء
+        $('<style>.has-error { border: 1px solid #dc3545 !important; background-color: #fff8f8 !important; }</style>').appendTo('head');
+
+        // دالة لتنسيق الكمية كرقم صحيح إذا كانت بدون كسور
+        function formatQuantity(value) {
+            if (value === undefined || value === null || value === '') {
+                return value;
+            }
+
+            const numValue = parseFloat(value);
+            if (isNaN(numValue)) {
+                return value;
+            }
+
+            // إذا كان الرقم عددًا صحيحًا، نعرضه بدون نقطة عشرية
+            if (numValue === Math.floor(numValue)) {
+                return Math.floor(numValue).toString();
+            }
+
+            return value;
+        }
+
+        // تنسيق الكمية عند تغييرها
+        $(document).on('change', 'input[id$="-quantity"]', function() {
+            const value = $(this).val();
+            const formattedValue = formatQuantity(value);
+            $(this).val(formattedValue);
+        });
+
+        // تنسيق الكميات الموجودة عند تحميل الصفحة
+        $('input[id$="-quantity"]').each(function() {
+            const value = $(this).val();
+            const formattedValue = formatQuantity(value);
+            $(this).val(formattedValue);
+        });
+
+        // تحديث وحدات المنتج عند اختيار منتج
+        $(document).on('change', '.product-select', function() {
+            const productId = $(this).val();
+            const row = $(this).closest('tr');
+            const productSelectId = $(this).attr('id');
+
+            // استخراج رقم الصف من معرف حقل المنتج
+            const rowIndex = productSelectId ? productSelectId.match(/-(\d+)-/)[1] : '0';
+            console.log('رقم الصف المستخرج:', rowIndex);
+
+            // البحث عن حقل وحدة المنتج بطريقة أكثر دقة
+            let unitSelect = row.find(`select[id$="-${rowIndex}-product_unit"]`);
+
+            // إذا لم يتم العثور على الحقل، نحاول بطرق أخرى
+            if (unitSelect.length === 0) {
+                unitSelect = row.find('select[id$="-product_unit"]');
+                if (unitSelect.length === 0) {
+                    unitSelect = row.find('select').eq(1); // الحقل الثاني في الصف هو حقل الوحدة
+                }
+            }
+
+            console.log('تم اختيار المنتج:', productId);
+            console.log('معرف حقل المنتج:', productSelectId);
+            console.log('حقل الوحدة:', unitSelect.attr('id'));
+
+            if (productId) {
+                // طلب وحدات المنتج من الخادم
+                $.ajax({
+                    url: '/products/api/product/' + productId + '/units/',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log('تم استلام بيانات الوحدات:', data);
+
+                        // التأكد من أن حقل الوحدة موجود
+                        if (unitSelect.length === 0) {
+                            console.error('لم يتم العثور على حقل الوحدة!');
+                            return;
+                        }
+
+                        // تفريغ القائمة وإضافة خيار الاختيار
+                        unitSelect.empty();
+                        unitSelect.append('<option value="">اختر الوحدة...</option>');
+
+                        // التحقق من وجود بيانات
+                        if (data && data.length > 0) {
+                            console.log('عدد الوحدات المستلمة:', data.length);
+
+                            // إضافة الوحدات إلى القائمة
+                            $.each(data, function(index, unit) {
+                                const unitName = unit.unit_name || (unit.unit && unit.unit.name) || 'وحدة غير معروفة';
+                                console.log('إضافة وحدة:', unitName, 'بمعرف:', unit.id);
+                                unitSelect.append('<option value="' + unit.id + '">' + unitName + '</option>');
+                            });
+
+                            // اختيار الوحدة الافتراضية إذا كانت متوفرة
+                            let defaultUnit = data.find(u => u.is_default_sale);
+                            if (!defaultUnit) {
+                                defaultUnit = data.find(u => u.is_default_purchase);
+                            }
+
+                            if (defaultUnit) {
+                                console.log('تم العثور على وحدة افتراضية:', defaultUnit.unit_name);
+                                unitSelect.val(defaultUnit.id);
+                            } else if (data.length > 0) {
+                                // إذا لم تكن هناك وحدة افتراضية، نختار الوحدة الأولى
+                                console.log('لم يتم العثور على وحدة افتراضية، اختيار الوحدة الأولى');
+                                unitSelect.val(data[0].id);
+                            }
+
+                            // حفظ معرف الوحدة في خاصية مخصصة للاستخدام لاحقًا
+                            const unitId = unitSelect.val();
+                            if (unitId) {
+                                unitSelect.attr('data-last-valid-unit', unitId);
+                                console.log('تم حفظ آخر وحدة صالحة:', unitId);
+
+                                // تحديث قيمة الحقل المخفي إذا كان موجودًا
+                                const hiddenInput = row.find(`input[name$="-${rowIndex}-product_unit"]`);
+                                if (hiddenInput.length > 0) {
+                                    hiddenInput.val(unitId);
+                                }
+                            }
+                        } else {
+                            console.warn('لم يتم استلام أي وحدات للمنتج!');
+                        }
+
+                        // تحديث Select2 بعد تغيير الخيارات
+                        unitSelect.trigger('change');
+
+                        // إعادة تهيئة Select2 للتأكد من تحديث القائمة
+                        if ($.fn.select2) {
+                            // تدمير أي نسخة سابقة من Select2
+                            if (unitSelect.hasClass('select2-hidden-accessible')) {
+                                unitSelect.select2('destroy');
+                            }
+
+                            unitSelect.select2({
+                                theme: 'bootstrap-5',
+                                placeholder: 'اختر الوحدة...',
+                                allowClear: true,
+                                width: '100%'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('خطأ في جلب وحدات المنتج:', error);
+                        console.error('استجابة الخادم:', xhr.responseText);
+                    }
+                });
+            } else {
+                unitSelect.empty();
+                unitSelect.append('<option value="">اختر الوحدة...</option>');
+                unitSelect.trigger('change');
+            }
+        });
+
+        // التأكد من أن وحدة المنتج صالحة عند تقديم النموذج
+        $(document).on('change', '.product-unit-select', function() {
+            const unitId = $(this).val();
+            if (unitId) {
+                $(this).attr('data-last-valid-unit', unitId);
+                console.log('تم حفظ آخر وحدة صالحة عند التغيير:', unitId);
+            }
+        });
+    });
+</script>
+{% endblock %}

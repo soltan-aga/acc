@@ -1,0 +1,83 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة تسكين الدفعات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-temperature-high me-2"></i>قائمة تسكين الدفعات</h4>
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-plus me-1"></i> إضافة تسكين جديد
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                        {% for batch in available_batches %}
+                        <li><a class="dropdown-item" href="{% url 'hatchery:incubation_create' batch.id %}">{{ batch.batch_name }} ({{ batch.date|date:"Y-m-d" }})</a></li>
+                        {% empty %}
+                        <li><a class="dropdown-item disabled" href="#">لا توجد دفعات متاحة</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if incubations %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>اسم الدفعة</th>
+                                <th>تاريخ التسكين</th>
+                                <th>عدد التسكين</th>
+                                <th>المعدم عند التسكين</th>
+                                <th>تاريخ الخروج المتوقع</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for incubation in incubations %}
+                            <tr>
+                                <td>{{ incubation.batch_entry.batch_name }}</td>
+                                <td>{{ incubation.incubation_date }}</td>
+                                <td>{{ incubation.incubation_quantity }}</td>
+                                <td>{{ incubation.damaged_quantity }}</td>
+                                <td>{{ incubation.expected_hatch_date }}</td>
+                                <td>
+                                    {% if incubation.is_ready_to_hatch %}
+                                    <span class="badge bg-warning">جاهز للخروج</span>
+                                    {% else %}
+                                    <span class="badge bg-info">قيد التفريخ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'hatchery:incubation_detail' incubation.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:incubation_update' incubation.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:incubation_delete' incubation.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% if incubation.is_ready_to_hatch and not incubation.hatching %}
+                                    <a href="{% url 'hatchery:hatching_create' incubation.id %}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-baby-carriage"></i> تسجيل خروج
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد دفعات مسكنة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة المستخدمين | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">إدارة المستخدمين</h4>
+            </div>
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم المستخدم</th>
+                                    <th>الاسم الكامل</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الدور</th>
+                                    <th>تاريخ الانضمام</th>
+                                    <th>آخر تسجيل دخول</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.username }}</td>
+                                        <td>{{ user.get_full_name|default:"-" }}</td>
+                                        <td>{{ user.email|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if user.profile.role == 'admin' %}bg-danger
+                                                {% elif user.profile.role == 'manager' %}bg-warning
+                                                {% elif user.profile.role == 'employee' %}bg-primary
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ user.profile.get_role_display_name }}
+                                            </span>
+                                        </td>
+                                        <td>{{ user.date_joined|date:"d/m/Y" }}</td>
+                                        <td>{{ user.last_login|date:"d/m/Y"|default:"-" }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    الإجراءات
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changeRoleModal{{ user.id }}">تغيير الدور</a></li>
+                                                    <li><a class="dropdown-item" href="#">عرض الملف الشخصي</a></li>
+                                                    {% if perms.auth.change_user %}
+                                                        <li><a class="dropdown-item" href="{% url 'admin:auth_user_change' user.id %}">تعديل في لوحة التحكم</a></li>
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                            
+                                            <!-- Change Role Modal -->
+                                            <div class="modal fade" id="changeRoleModal{{ user.id }}" tabindex="-1" aria-labelledby="changeRoleModalLabel{{ user.id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <form method="post" action="{% url 'change_user_role' user.id %}">
+                                                            {% csrf_token %}
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="changeRoleModalLabel{{ user.id }}">تغيير دور {{ user.username }}</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <label for="role{{ user.id }}" class="form-label">الدور</label>
+                                                                    <select class="form-select" id="role{{ user.id }}" name="role">
+                                                                        <option value="admin" {% if user.profile.role == 'admin' %}selected{% endif %}>مدير النظام</option>
+                                                                        <option value="manager" {% if user.profile.role == 'manager' %}selected{% endif %}>مدير</option>
+                                                                        <option value="employee" {% if user.profile.role == 'employee' %}selected{% endif %}>موظف</option>
+                                                                        <option value="viewer" {% if user.profile.role == 'viewer' %}selected{% endif %}>مشاهد</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        لا يوجد مستخدمين.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

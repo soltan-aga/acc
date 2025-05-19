@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ title }}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if contact_type == 'customer' or contact.contact_type == 'customer' %}
+            <a href="{% url 'customer_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        {% elif contact_type == 'supplier' or contact.contact_type == 'supplier' %}
+            <a href="{% url 'supplier_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        {% else %}
+            <a href="{% url 'contact_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">الاسم</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.contact_type.id_for_label }}" class="form-label">النوع</label>
+                    {{ form.contact_type }}
+                    {% if form.contact_type.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.contact_type.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.phone.id_for_label }}" class="form-label">رقم الهاتف</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.phone.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.alternative_phone.id_for_label }}" class="form-label">رقم هاتف بديل</label>
+                    {{ form.alternative_phone }}
+                    {% if form.alternative_phone.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.alternative_phone.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">البريد الإلكتروني</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.tax_number.id_for_label }}" class="form-label">الرقم الضريبي</label>
+                    {{ form.tax_number }}
+                    {% if form.tax_number.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.tax_number.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.address.id_for_label }}" class="form-label">العنوان</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.address.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.initial_balance.id_for_label }}" class="form-label">الرصيد الافتتاحي</label>
+                    {{ form.initial_balance }}
+                    {% if form.initial_balance.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.initial_balance.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        {% if form.instance.pk %}
+                            ملاحظة: تغيير الرصيد الافتتاحي سيؤدي إلى تعديل الرصيد الحالي بنفس القيمة.
+                        {% else %}
+                            سيتم تعيين الرصيد الحالي بنفس قيمة الرصيد الافتتاحي عند الإنشاء.
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.credit_limit.id_for_label }}" class="form-label">حد الائتمان</label>
+                    {{ form.credit_limit }}
+                    {% if form.credit_limit.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.credit_limit.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">ملاحظات</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.notes.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> حفظ
+                </button>
+                {% if contact_type == 'customer' or contact.contact_type == 'customer' %}
+                    <a href="{% url 'customer_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                {% elif contact_type == 'supplier' or contact.contact_type == 'supplier' %}
+                    <a href="{% url 'supplier_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                {% else %}
+                    <a href="{% url 'contact_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

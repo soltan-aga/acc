@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف إيداع في الخزنة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">حذف إيداع في الخزنة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">تأكيد الحذف</h5>
+                        <p>هل أنت متأكد من حذف الإيداع رقم "{{ deposit.number }}"؟</p>
+                        <hr>
+                        <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>بيانات الإيداع:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>الرقم:</strong> {{ deposit.number }}</li>
+                            <li class="list-group-item"><strong>التاريخ:</strong> {{ deposit.date|date:"Y-m-d" }}</li>
+                            <li class="list-group-item"><strong>الخزنة:</strong> {{ deposit.safe.name }}</li>
+                            <li class="list-group-item"><strong>المبلغ:</strong> {{ deposit.amount }}</li>
+                            <li class="list-group-item"><strong>المصدر:</strong> {{ deposit.source }}</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'safe_deposit_detail' deposit.id %}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

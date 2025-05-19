@@ -1,0 +1,1231 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+{% if invoice.id %}تعديل فاتورة{% else %}إنشاء فاتورة جديدة{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* تنسيق حقل الإجمالي الكلي */
+    #total_with_balance {
+        font-size: 1.2em;
+        color: #28a745;
+    }
+
+    /* تنسيق حقل الرصيد السابق */
+    #previous_balance.text-danger {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+
+    /* تنسيق قائمة البحث */
+    .select2-container--bootstrap-5 .select2-selection {
+        border: 1px solid #ced4da;
+        padding: 0.375rem 0.75rem;
+        height: auto;
+        min-height: 38px;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+        padding: 0;
+    }
+
+    .select2-container--bootstrap-5 .select2-dropdown {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd;
+        color: white;
+    }
+</style>
+<!-- إضافة مكتبة Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{% if invoice.id %}تعديل فاتورة{% else %}إنشاء فاتورة جديدة{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="invoiceForm">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="invoice_type" class="form-label">نوع الفاتورة</label>
+                        {% if request.GET.type %}
+                            <input type="hidden" name="invoice_type" value="{{ request.GET.type }}">
+                            <select id="invoice_type" class="form-select" disabled>
+                                <option value="sale" {% if request.GET.type == 'sale' %}selected{% endif %}>فاتورة بيع</option>
+                                <option value="purchase" {% if request.GET.type == 'purchase' %}selected{% endif %}>فاتورة شراء</option>
+                                <option value="sale_return" {% if request.GET.type == 'sale_return' %}selected{% endif %}>مرتجع بيع</option>
+                                <option value="purchase_return" {% if request.GET.type == 'purchase_return' %}selected{% endif %}>مرتجع شراء</option>
+                            </select>
+                        {% else %}
+                            <select name="invoice_type" id="invoice_type" class="form-select" required>
+                                <option value="">اختر نوع الفاتورة</option>
+                                <option value="sale" {% if invoice.invoice_type == 'sale' %}selected{% endif %}>فاتورة بيع</option>
+                                <option value="purchase" {% if invoice.invoice_type == 'purchase' %}selected{% endif %}>فاتورة شراء</option>
+                                <option value="sale_return" {% if invoice.invoice_type == 'sale_return' %}selected{% endif %}>مرتجع بيع</option>
+                                <option value="purchase_return" {% if invoice.invoice_type == 'purchase_return' %}selected{% endif %}>مرتجع شراء</option>
+                            </select>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="date" class="form-label">التاريخ</label>
+                        <input type="date" name="date" id="date" class="form-control" value="{{ invoice.date|date:'Y-m-d' }}" required>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="payment_type" class="form-label">طريقة الدفع</label>
+                        <select name="payment_type" id="payment_type" class="form-select" required>
+                            <option value="">اختر طريقة الدفع</option>
+                            <option value="cash" {% if invoice.payment_type == 'cash' %}selected{% endif %}>نقدي</option>
+                            <option value="credit" {% if invoice.payment_type == 'credit' %}selected{% endif %}>آجل</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="number" class="form-label">رقم الفاتورة</label>
+                        <input type="text" name="number" id="number" class="form-control" value="{{ invoice.number }}" {% if invoice.id %}readonly{% endif %} required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="contact" class="form-label">العميل/المورد</label>
+                        <select name="contact" id="contact" class="form-select" required>
+                            <option value="">اختر العميل/المورد</option>
+                            {% for contact in contacts %}
+                            <option value="{{ contact.id }}"
+                                {% if invoice.contact_id == contact.id %}selected{% endif %}
+                                data-contact-type="{{ contact.contact_type }}"
+                                data-current-balance="{{ contact.current_balance }}"
+                                {% if settings.default_customer and contact.id == settings.default_customer.id %}data-is-default-customer="true"{% endif %}
+                                {% if settings.default_supplier and contact.id == settings.default_supplier.id %}data-is-default-supplier="true"{% endif %}>
+                                {{ contact.name }} {% if contact.contact_type == 'customer' %}(عميل){% else %}(مورد){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="store" class="form-label">المخزن</label>
+                        <select name="store" id="store" class="form-select" required>
+                            <option value="">اختر المخزن</option>
+                            {% for store in stores %}
+                            <option value="{{ store.id }}" {% if invoice.store_id == store.id %}selected{% endif %}>{{ store.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="safe" class="form-label">الخزنة</label>
+                        <select name="safe" id="safe" class="form-select" required>
+                            <option value="">اختر الخزنة</option>
+                            {% for safe in safes %}
+                            <option value="{{ safe.id }}" {% if invoice.safe_id == safe.id %}selected{% endif %}>{{ safe.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="representative" class="form-label">المندوب</label>
+                        <select name="representative" id="representative" class="form-select">
+                            <option value="">اختر المندوب (اختياري)</option>
+                            {% for rep in representatives %}
+                            <option value="{{ rep.id }}" {% if invoice.representative_id == rep.id %}selected{% endif %}>{{ rep.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="driver" class="form-label">السائق</label>
+                        <select name="driver" id="driver" class="form-select">
+                            <option value="">اختر السائق (اختياري)</option>
+                            {% for driver in drivers %}
+                            <option value="{{ driver.id }}" {% if invoice.driver_id == driver.id %}selected{% endif %}>{{ driver.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                    <h5 class="mb-0">بنود الفاتورة</h5>
+                    <div class="keyboard-shortcuts small text-muted">
+                        <span class="badge bg-light text-dark me-2" title="إضافة بند جديد"><i class="fas fa-plus"></i> إضافة بند</span>
+                        <span class="badge bg-light text-dark me-2" title="حفظ الفاتورة"><i class="fas fa-save"></i> F12</span>
+                        <span class="badge bg-light text-dark" title="التنقل بين الحقول"><i class="fas fa-arrow-right"></i> <i class="fas fa-arrow-left"></i></span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="items_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>المنتج</th>
+                                <th>الوحدة</th>
+                                <th>الكمية</th>
+                                <th>السعر</th>
+                                <th>الخصم</th>
+                                <th>الضريبة</th>
+                                <th>الإجمالي</th>
+                                <th>حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items_body">
+                            {% if invoice_items %}
+                                {% for item in invoice_items %}
+                                <tr class="item-row">
+                                    <td style="min-width: 200px;">
+                                        <select name="items[{{ forloop.counter0 }}][product]" class="form-select product-select" required>
+                                            <option value="">اختر المنتج</option>
+                                            {% for product in products %}
+                                            <option value="{{ product.id }}" {% if item.product_id == product.id %}selected{% endif %}>{{ product.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td style="min-width: 150px;">
+                                        <select name="items[{{ forloop.counter0 }}][product_unit]" class="form-select unit-select" required>
+                                            <option value="">اختر الوحدة</option>
+                                            {% if item.product_units %}
+                                                {% for unit in item.product_units %}
+                                                <option value="{{ unit.id }}"
+                                                    {% if item.product_unit_id == unit.id %}selected{% endif %}
+                                                    data-purchase-price="{{ unit.purchase_price|default:'0' }}"
+                                                    data-sale-price="{{ unit.selling_price|default:'0' }}">
+                                                    {{ unit.unit.name }}
+                                                </option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][quantity]" class="form-control quantity" value="{{ item.quantity|floatformat:'-2' }}" min="0.01" step="0.01" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][unit_price]" class="form-control price" value="{{ item.unit_price|floatformat:'-2' }}" min="0.01" step="0.01" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][discount_amount]" class="form-control discount" value="{{ item.discount_amount|floatformat:'-2' }}" min="0" step="0.01">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][tax_amount]" class="form-control tax" value="{{ item.tax_amount|floatformat:'-2' }}" min="0" step="0.01">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][net_price]" class="form-control total" value="{{ item.net_price|floatformat:'-2' }}" readonly>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% elif invoice.invoiceitem_set.all %}
+                                {% for item in invoice.invoiceitem_set.all %}
+                                <tr class="item-row">
+                                    <td style="min-width: 200px;">
+                                        <select name="items[{{ forloop.counter0 }}][product]" class="form-select product-select" required>
+                                            <option value="">اختر المنتج</option>
+                                            {% for product in products %}
+                                            <option value="{{ product.id }}" {% if item.product_id == product.id %}selected{% endif %}>{{ product.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td style="min-width: 150px;">
+                                        <select name="items[{{ forloop.counter0 }}][product_unit]" class="form-select unit-select" required>
+                                            <option value="">اختر الوحدة</option>
+                                            {% if item.product_units %}
+                                                {% for unit in item.product_units %}
+                                                <option value="{{ unit.id }}"
+                                                    {% if item.product_unit_id == unit.id %}selected{% endif %}
+                                                    data-purchase-price="{{ unit.purchase_price|default:'0' }}"
+                                                    data-sale-price="{{ unit.selling_price|default:'0' }}">
+                                                    {{ unit.unit.name }}
+                                                </option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][quantity]" class="form-control quantity" value="{{ item.quantity|floatformat:'-2' }}" min="0.01" step="0.01" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][unit_price]" class="form-control price" value="{{ item.unit_price|floatformat:'-2' }}" min="0.01" step="0.01" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][discount_amount]" class="form-control discount" value="{{ item.discount_amount|floatformat:'-2' }}" min="0" step="0.01">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][tax_amount]" class="form-control tax" value="{{ item.tax_amount|floatformat:'-2' }}" min="0" step="0.01">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[{{ forloop.counter0 }}][net_price]" class="form-control total" value="{{ item.net_price|floatformat:'-2' }}" readonly>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="8">
+                                    <button type="button" id="add_item" class="btn btn-success btn-sm">
+                                        <i class="fas fa-plus"></i> إضافة بند
+                                    </button>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3">{{ invoice.notes }}</textarea>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الإجمالي:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="total_amount" id="total_amount" class="form-control-plaintext text-end" value="{{ invoice.total_amount|default:0 }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الخصم:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="discount_amount" id="discount_amount" class="form-control-plaintext text-end" value="{{ invoice.discount_amount|default:0 }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الضريبة:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="tax_amount" id="tax_amount" class="form-control-plaintext text-end" value="{{ invoice.tax_amount|default:0 }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الصافي:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="net_amount" id="net_amount" class="form-control-plaintext text-end" value="{{ invoice.net_amount|default:0 }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الرصيد السابق:</label>
+                                    <div class="col-6">
+                                        <input type="number" id="previous_balance" class="form-control-plaintext text-end" value="0" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">الإجمالي الكلي:</label>
+                                    <div class="col-6">
+                                        <input type="number" id="total_with_balance" class="form-control-plaintext text-end fw-bold" value="0" readonly>
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">المدفوع:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="paid_amount" id="paid_amount" class="form-control text-end" value="{{ invoice.paid_amount|default:0 }}" min="0" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="row mb-2">
+                                    <label class="col-6 text-end">المتبقي:</label>
+                                    <div class="col-6">
+                                        <input type="number" name="remaining_amount" id="remaining_amount" class="form-control-plaintext text-end" value="{{ invoice.remaining_amount|default:0 }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="items_data" id="items_data" value="">
+                <div id="form-errors" class="alert alert-danger mt-3" style="display: none;"></div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                    <a href="{% url 'invoice_list' %}" class="btn btn-secondary">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- إضافة مكتبة Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        console.log('=== بدء تحميل صفحة تعديل الفاتورة ===');
+
+        // إضافة اختصارات لوحة المفاتيح
+        $(document).keydown(function(e) {
+            console.log('مفتاح مضغوط:', e.key, 'كود المفتاح:', e.keyCode, 'الحقل النشط:', document.activeElement.tagName);
+
+            // مفتاح + لإضافة بند جديد (رمز 107 للمفتاح + في لوحة الأرقام، ورمز 187 للمفتاح + العادي)
+            if ((e.keyCode === 107 || (e.keyCode === 187 && e.shiftKey)) && !$(document.activeElement).is('input[type=text], input[type=number], textarea, select')) {
+                e.preventDefault();
+                console.log('اختصار إضافة بند جديد');
+                addNewRow();
+
+                // التركيز على حقل البحث عن المنتج في الصف الجديد
+                setTimeout(function() {
+                    var newRow = $('.item-row').last();
+                    var productSelect = newRow.find('.product-select');
+                    productSelect.select2('open');
+                }, 100);
+
+                return false;
+            }
+
+            // مفتاح F12 لحفظ الفاتورة
+            if (e.keyCode === 123) {
+                e.preventDefault();
+                console.log('اختصار حفظ الفاتورة');
+                $('#invoiceForm').submit();
+                return false;
+            }
+
+            // التنقل بين حقول البند باستخدام مفاتيح الأسهم
+            if ($(document.activeElement).closest('.item-row').length > 0) {
+                var currentRow = $(document.activeElement).closest('.item-row');
+                var currentField = $(document.activeElement);
+                var currentIndex = -1;
+
+                // تحديد الحقول القابلة للتركيز في الصف الحالي
+                var focusableFields = currentRow.find('select, input').filter(':visible:not([readonly])');
+
+                // تحديد موقع الحقل الحالي
+                focusableFields.each(function(index) {
+                    if (this === document.activeElement || $(this).has(document.activeElement).length > 0) {
+                        currentIndex = index;
+                        return false;
+                    }
+                });
+
+                // مفتاح السهم الأيمن (للانتقال للحقل السابق في واجهة عربية)
+                if (e.keyCode === 39 && currentIndex > 0) {
+                    e.preventDefault();
+                    var prevField = focusableFields.eq(currentIndex - 1);
+
+                    // التعامل مع حقول Select2
+                    if (prevField.hasClass('select2-hidden-accessible')) {
+                        prevField.select2('focus');
+                    } else {
+                        prevField.focus();
+                    }
+
+                    return false;
+                }
+
+                // مفتاح السهم الأيسر (للانتقال للحقل التالي في واجهة عربية)
+                if (e.keyCode === 37 && currentIndex < focusableFields.length - 1) {
+                    e.preventDefault();
+                    var nextField = focusableFields.eq(currentIndex + 1);
+
+                    // التعامل مع حقول Select2
+                    if (nextField.hasClass('select2-hidden-accessible')) {
+                        nextField.select2('focus');
+                    } else {
+                        nextField.focus();
+                    }
+
+                    return false;
+                }
+            }
+        });
+
+        // تهيئة Select2 للبحث في المنتجات
+        $('.product-select').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'اختر المنتج أو ابحث...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "لا توجد نتائج";
+                },
+                searching: function() {
+                    return "جاري البحث...";
+                }
+            }
+        });
+
+        // تهيئة Select2 للعميل/المورد
+        $('#contact').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'اختر العميل/المورد أو ابحث...',
+            allowClear: true,
+            width: '100%'
+        });
+
+        // التحقق من وجود رقم الفاتورة
+        if (!$('#number').val()) {
+            console.warn('رقم الفاتورة غير موجود، يرجى التأكد من تعيينه');
+        } else {
+            console.log('رقم الفاتورة:', $('#number').val());
+        }
+
+        // طباعة معلومات بنود الفاتورة
+        console.log('=== معلومات بنود الفاتورة ===');
+        $('.item-row').each(function(index) {
+            var row = $(this);
+            var productId = row.find('.product-select').val();
+            var productName = row.find('.product-select option:selected').text();
+            var unitId = row.find('.unit-select').val();
+            var unitName = row.find('.unit-select option:selected').text();
+            var quantity = row.find('.quantity').val();
+            var price = row.find('.price').val();
+
+            console.log(`بند #${index + 1}:`, {
+                'المنتج': productName + ' (ID: ' + productId + ')',
+                'الوحدة': unitName + ' (ID: ' + unitId + ')',
+                'الكمية': quantity,
+                'السعر': price,
+                'قيمة الكمية الخام': row.find('.quantity').attr('value')
+            });
+        });
+        // إضافة بند جديد
+        $('#add_item').click(function() {
+            var newRow = addNewRow();
+
+            // التركيز على حقل البحث عن المنتج في الصف الجديد
+            setTimeout(function() {
+                newRow.find('.product-select').select2('open');
+            }, 100);
+        });
+
+        // حذف بند
+        $(document).on('click', '.remove-item', function() {
+            $(this).closest('tr').remove();
+            calculateTotals();
+        });
+
+        // حساب المجاميع عند تغيير القيم
+        $(document).on('change', '.quantity, .price, .discount, .tax', function() {
+            calculateRowTotal($(this).closest('tr'));
+            calculateTotals();
+        });
+
+        // تحديث المبلغ المتبقي عند تغيير المبلغ المدفوع
+        $('#paid_amount').on('input', function() {
+            var netAmount = parseFloat($('#net_amount').val()) || 0;
+            var paidAmount = parseFloat($(this).val()) || 0;
+            var remainingAmount = netAmount - paidAmount;
+            $('#remaining_amount').val(remainingAmount.toFixed(2));
+        });
+
+        // تحديث الرصيد السابق عند تغيير العميل/المورد
+        $('#contact').change(function() {
+            updatePreviousBalance();
+        });
+
+        // تحديث الأسعار عند تغيير نوع الفاتورة
+        $('#invoice_type').change(function() {
+            var invoiceType = $(this).val();
+
+            // تحديث قائمة العملاء/الموردين بناءً على نوع الفاتورة
+            updateContactsBasedOnInvoiceType(invoiceType);
+
+            // تحديث الرصيد السابق بعد تغيير نوع الفاتورة
+            updatePreviousBalance();
+
+            // تحديث سعر كل صف بناءً على نوع الفاتورة
+            $('.item-row').each(function() {
+                var row = $(this);
+                var unitSelect = row.find('.unit-select');
+                var selectedOption = unitSelect.find('option:selected');
+
+                if (selectedOption.val()) {
+                    var price = 0;
+
+                    // تحديد السعر بناءً على نوع الفاتورة
+                    if (invoiceType === 'sale' || invoiceType === 'sale_return') {
+                        price = parseFloat(selectedOption.data('sale-price')) || 0;
+                    } else if (invoiceType === 'purchase' || invoiceType === 'purchase_return') {
+                        price = parseFloat(selectedOption.data('purchase-price')) || 0;
+                    }
+
+                    // تعيين السعر
+                    row.find('.price').val(price.toFixed(2));
+
+                    // حساب إجمالي الصف
+                    calculateRowTotal(row);
+                }
+            });
+
+            // حساب المجاميع الكلية
+            calculateTotals();
+        });
+
+        // دالة لتحديث قائمة العملاء/الموردين بناءً على نوع الفاتورة
+        function updateContactsBasedOnInvoiceType(invoiceType) {
+            var contactSelect = $('#contact');
+            var currentValue = contactSelect.val();
+
+            // تحديد نوع جهة الاتصال المطلوبة بناءً على نوع الفاتورة
+            var requiredType = '';
+            if (invoiceType === 'sale' || invoiceType === 'sale_return') {
+                requiredType = 'customer';
+            } else if (invoiceType === 'purchase' || invoiceType === 'purchase_return') {
+                requiredType = 'supplier';
+            }
+
+            // تحديث العنوان
+            var label = (requiredType === 'customer') ? 'العميل' : 'المورد';
+            contactSelect.prev('label').text(label);
+
+            // تحديد العميل/المورد الافتراضي إذا لم يكن محدداً بالفعل
+            if (!currentValue) {
+                // البحث عن العميل/المورد الافتراضي
+                if (requiredType === 'customer') {
+                    // البحث عن العميل الافتراضي
+                    var defaultCustomer = contactSelect.find('option[data-is-default-customer="true"]');
+                    if (defaultCustomer.length) {
+                        contactSelect.val(defaultCustomer.val());
+                    }
+                } else if (requiredType === 'supplier') {
+                    // البحث عن المورد الافتراضي
+                    var defaultSupplier = contactSelect.find('option[data-is-default-supplier="true"]');
+                    if (defaultSupplier.length) {
+                        contactSelect.val(defaultSupplier.val());
+                    }
+                }
+            }
+        }
+
+        // تحميل وحدات المنتج عند اختيار منتج باستخدام AJAX
+        $(document).on('change', '.product-select', function() {
+            var productId = $(this).val();
+            var row = $(this).closest('tr');
+
+            // التحقق من وجود منتج مكرر وتطبيق إعدادات التعامل مع التكرار
+            if (productId) {
+                var duplicateItemHandling = '{{ settings.duplicate_item_handling }}';
+                var isDuplicate = false;
+                var duplicateRow = null;
+
+                // البحث عن صفوف أخرى تحتوي على نفس المنتج
+                $('.item-row').not(row).each(function() {
+                    var otherRow = $(this);
+                    var otherProductId = otherRow.find('.product-select').val();
+
+                    if (otherProductId === productId) {
+                        isDuplicate = true;
+                        duplicateRow = otherRow;
+                        return false; // الخروج من الحلقة
+                    }
+                });
+
+                // إذا كان المنتج مكرراً، تطبيق إعدادات التعامل مع التكرار
+                if (isDuplicate && duplicateRow) {
+                    console.log('تم العثور على منتج مكرر. طريقة التعامل: ' + duplicateItemHandling);
+
+                    if (duplicateItemHandling === 'increase_quantity') {
+                        // زيادة الكمية في الصف الموجود وحذف الصف الجديد
+                        var existingQuantity = parseFloat(duplicateRow.find('.quantity').val()) || 0;
+                        var newQuantity = existingQuantity + 1; // زيادة الكمية بمقدار 1
+
+                        duplicateRow.find('.quantity').val(newQuantity);
+                        calculateRowTotal(duplicateRow);
+                        calculateTotals();
+
+                        // حذف الصف الحالي
+                        row.remove();
+
+                        console.log('تم زيادة الكمية في الصف الموجود إلى: ' + newQuantity);
+                        return; // الخروج من الدالة
+                    }
+                    // إذا كان الإعداد هو السماح بالتكرار، استمر في تنفيذ الكود العادي
+                }
+
+                // تفريغ قائمة الوحدات
+                var unitSelect = row.find('.unit-select');
+                unitSelect.empty();
+                unitSelect.append('<option value="">جاري تحميل الوحدات...</option>');
+
+                // إضافة مؤشر تحميل
+                var loadingIndicator = $('<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>');
+                row.find('.unit-select').after(loadingIndicator);
+
+                console.log('تحميل وحدات المنتج رقم: ' + productId);
+
+                // طلب AJAX لتحميل وحدات المنتج من الخادم
+                $.ajax({
+                    url: '/products/api/product/' + productId + '/units/',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log('تم استلام البيانات:', data);
+
+                        // إزالة مؤشر التحميل
+                        loadingIndicator.remove();
+
+                        // تفريغ القائمة وإضافة خيار الاختيار
+                        unitSelect.empty();
+                        unitSelect.append('<option value="">اختر الوحدة</option>');
+
+                        if (data && data.length > 0) {
+                            // إضافة الوحدات المستلمة من الخادم
+                            $.each(data, function(index, unit) {
+                                var purchasePrice = unit.purchase_price || 0;
+                                var salePrice = unit.sale_price || 0;
+
+                                unitSelect.append(
+                                    '<option value="' + unit.id + '" ' +
+                                    'data-purchase-price="' + purchasePrice + '" ' +
+                                    'data-sale-price="' + salePrice + '" ' +
+                                    'data-selling-price="' + salePrice + '">' +
+                                    unit.unit_name + '</option>'
+                                );
+
+                                console.log('إضافة وحدة: ' + unit.unit_name + ' - سعر البيع: ' + salePrice + ', سعر الشراء: ' + purchasePrice);
+                            });
+
+                            // تحديد الوحدة الافتراضية إذا كانت متوفرة
+                            if (unitSelect.find('option').length > 1) {
+                                // البحث عن الوحدة الافتراضية للبيع أو الشراء حسب نوع الفاتورة
+                                var invoiceType = $('#invoice_type').val();
+                                var defaultOption = null;
+
+                                if (invoiceType === 'sale' || invoiceType === 'sale_return') {
+                                    // البحث عن وحدة البيع الافتراضية
+                                    $.each(data, function(index, unit) {
+                                        if (unit.is_default_sale) {
+                                            defaultOption = unitSelect.find('option[value="' + unit.id + '"]');
+                                            return false; // الخروج من الحلقة
+                                        }
+                                    });
+                                } else if (invoiceType === 'purchase' || invoiceType === 'purchase_return') {
+                                    // البحث عن وحدة الشراء الافتراضية
+                                    $.each(data, function(index, unit) {
+                                        if (unit.is_default_purchase) {
+                                            defaultOption = unitSelect.find('option[value="' + unit.id + '"]');
+                                            return false; // الخروج من الحلقة
+                                        }
+                                    });
+                                }
+
+                                // إذا لم يتم العثور على وحدة افتراضية، استخدم الوحدة الأولى
+                                if (!defaultOption || defaultOption.length === 0) {
+                                    defaultOption = unitSelect.find('option').eq(1);
+                                }
+
+                                // تحديد الوحدة الافتراضية
+                                defaultOption.prop('selected', true);
+
+                                // تحديد السعر بناءً على نوع الفاتورة
+                                var price = 0;
+                                if (invoiceType === 'sale' || invoiceType === 'sale_return') {
+                                    price = parseFloat(defaultOption.data('sale-price')) || parseFloat(defaultOption.data('selling-price')) || 0;
+                                    console.log('سعر البيع من data-sale-price:', defaultOption.data('sale-price'));
+                                    console.log('سعر البيع من data-selling-price:', defaultOption.data('selling-price'));
+                                } else if (invoiceType === 'purchase' || invoiceType === 'purchase_return') {
+                                    price = parseFloat(defaultOption.data('purchase-price')) || 0;
+                                    console.log('سعر الشراء من data-purchase-price:', defaultOption.data('purchase-price'));
+                                }
+
+                                // تعيين السعر
+                                row.find('.price').val(price.toFixed(2));
+
+                                // حساب إجمالي الصف
+                                calculateRowTotal(row);
+                                calculateTotals();
+
+                                console.log('تم تحديد الوحدة الافتراضية: ' + defaultOption.text() + ' والسعر: ' + price.toFixed(2));
+                            }
+                        } else {
+                            console.warn('لم يتم العثور على وحدات للمنتج رقم: ' + productId);
+                            unitSelect.append('<option value="">لا توجد وحدات لهذا المنتج</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // إزالة مؤشر التحميل
+                        loadingIndicator.remove();
+
+                        // في حالة حدوث خطأ
+                        console.error('خطأ في تحميل وحدات المنتج:', error);
+                        console.error('حالة الخطأ:', status);
+                        console.error('استجابة الخادم:', xhr.responseText);
+
+                        unitSelect.empty();
+                        unitSelect.append('<option value="">خطأ في تحميل الوحدات</option>');
+                    }
+                });
+            } else {
+                // إذا لم يتم اختيار منتج، تفريغ قائمة الوحدات
+                var unitSelect = row.find('.unit-select');
+                unitSelect.empty();
+                unitSelect.append('<option value="">اختر الوحدة</option>');
+
+                // تصفير السعر والكمية
+                row.find('.price').val('0.00');
+                row.find('.quantity').val('1');
+                row.find('.discount').val('0.00');
+                row.find('.tax').val('0.00');
+                row.find('.total').val('0.00');
+
+                // حساب المجاميع
+                calculateTotals();
+            }
+        });
+
+        // تحميل سعر الوحدة عند اختيار وحدة المنتج
+        $(document).on('change', '.unit-select', function() {
+            var unitId = $(this).val();
+            var row = $(this).closest('tr');
+            var invoiceType = $('#invoice_type').val();
+
+            if (unitId) {
+                var selectedOption = $(this).find('option:selected');
+                var price = 0;
+
+                // تحديد السعر بناءً على نوع الفاتورة
+                if (invoiceType === 'sale' || invoiceType === 'sale_return') {
+                    price = parseFloat(selectedOption.data('sale-price')) || parseFloat(selectedOption.data('selling-price')) || 0;
+                    console.log('تم تحديد سعر البيع: ' + price);
+                    console.log('سعر البيع من data-sale-price:', selectedOption.data('sale-price'));
+                    console.log('سعر البيع من data-selling-price:', selectedOption.data('selling-price'));
+                } else if (invoiceType === 'purchase' || invoiceType === 'purchase_return') {
+                    price = parseFloat(selectedOption.data('purchase-price')) || 0;
+                    console.log('تم تحديد سعر الشراء: ' + price);
+                    console.log('سعر الشراء من data-purchase-price:', selectedOption.data('purchase-price'));
+                }
+
+                // تعيين السعر
+                row.find('.price').val(price.toFixed(2));
+                console.log('تم تعيين السعر: ' + price.toFixed(2));
+
+                // حساب إجمالي الصف
+                calculateRowTotal(row);
+                calculateTotals();
+            } else {
+                console.log('لم يتم اختيار وحدة');
+            }
+        });
+
+        // إرسال البيانات
+        $('#invoiceForm').submit(function(e) {
+            console.log('=== بدء عملية إرسال النموذج ===');
+            console.log('عدد البنود:', $('.item-row').length);
+
+            // التحقق من وجود بنود في الفاتورة
+            if ($('.item-row').length === 0) {
+                console.error('خطأ: لا توجد بنود في الفاتورة');
+                e.preventDefault();
+                alert('يجب إضافة بند واحد على الأقل للفاتورة');
+                return false;
+            }
+
+            // التحقق من صحة البنود
+            var isValid = true;
+            var invalidItems = [];
+
+            $('.item-row').each(function(index) {
+                var row = $(this);
+                var product = row.find('.product-select').val();
+                var unit = row.find('.unit-select').val();
+                var quantity = parseFloat(row.find('.quantity').val()) || 0;
+                var price = parseFloat(row.find('.price').val()) || 0;
+
+                console.log(`بند #${index + 1}:`, {
+                    product: product,
+                    unit: unit,
+                    quantity: quantity,
+                    price: price
+                });
+
+                if (!product || !unit || quantity <= 0 || price <= 0) {
+                    isValid = false;
+                    invalidItems.push({
+                        index: index + 1,
+                        product: product,
+                        unit: unit,
+                        quantity: quantity,
+                        price: price
+                    });
+                }
+            });
+
+            if (!isValid) {
+                console.error('خطأ: بعض البنود غير صالحة', invalidItems);
+                e.preventDefault();
+                alert('يرجى التأكد من اختيار المنتج والوحدة وإدخال الكمية والسعر لجميع البنود');
+                return false;
+            }
+
+            // تجميع بيانات البنود
+            var items = [];
+            $('.item-row').each(function() {
+                var row = $(this);
+                var item = {
+                    product: row.find('.product-select').val(),
+                    product_unit: row.find('.unit-select').val(),
+                    quantity: parseFloat(row.find('.quantity').val()) || 0,
+                    unit_price: parseFloat(row.find('.price').val()) || 0,
+                    discount_amount: parseFloat(row.find('.discount').val()) || 0,
+                    tax_amount: parseFloat(row.find('.tax').val()) || 0,
+                    net_price: parseFloat(row.find('.total').val()) || 0
+                };
+                items.push(item);
+            });
+
+            // تعيين البيانات في الحقل المخفي
+            $('#items_data').val(JSON.stringify(items));
+            console.log('تم تعيين بيانات البنود في الحقل المخفي');
+            console.log('بيانات البنود:', items);
+            console.log('قيمة الحقل المخفي:', $('#items_data').val());
+
+            // طباعة جميع حقول النموذج
+            var formData = {};
+            $('#invoiceForm').serializeArray().forEach(function(field) {
+                formData[field.name] = field.value;
+            });
+            console.log('بيانات النموذج الكاملة:', formData);
+
+            // التحقق من وجود حقول مطلوبة
+            var requiredFields = ['invoice_type', 'payment_type', 'contact', 'store', 'safe', 'number'];
+            var missingFields = [];
+
+            requiredFields.forEach(function(field) {
+                if (!$('#' + field).val()) {
+                    missingFields.push(field);
+                    console.error(`الحقل ${field} فارغ أو غير موجود. القيمة: "${$('#' + field).val()}"`);
+                }
+            });
+
+            if (missingFields.length > 0) {
+                console.error('خطأ: بعض الحقول المطلوبة غير موجودة', missingFields);
+                e.preventDefault();
+                alert('يرجى ملء جميع الحقول المطلوبة: ' + missingFields.join(', '));
+                return false;
+            }
+
+            console.log('=== تم التحقق من صحة النموذج بنجاح ===');
+            console.log('جاري إرسال النموذج...');
+
+            // إضافة معالج لأحداث النموذج
+            $(this).on('ajax:success', function(e, data, status, xhr) {
+                console.log('تم إرسال النموذج بنجاح:', data);
+            }).on('ajax:error', function(e, xhr, status, error) {
+                console.error('حدث خطأ أثناء إرسال النموذج:', error);
+                console.error('استجابة الخادم:', xhr.responseText);
+            });
+
+            // إضافة معالج لأحداث الإرسال
+            var formElement = this;
+            var formData = new FormData(formElement);
+
+            // عرض رسالة تحميل
+            $('#form-errors').html('جاري حفظ الفاتورة...').removeClass('alert-danger').addClass('alert-info').show();
+
+            // إرسال النموذج يدوياً باستخدام AJAX
+            $.ajax({
+                type: 'POST',
+                url: formElement.action,
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    console.log('تم إرسال النموذج بنجاح باستخدام AJAX');
+                    console.log('استجابة الخادم:', response);
+
+                    // عرض رسالة نجاح
+                    $('#form-errors').html('تم حفظ الفاتورة بنجاح، جاري التحويل...').removeClass('alert-danger').addClass('alert-success').show();
+
+                    // إعادة توجيه المستخدم إلى صفحة التفاصيل
+                    if (response && response.redirect_url) {
+                        console.log('جاري التحويل إلى:', response.redirect_url);
+                        setTimeout(function() {
+                            window.location.href = response.redirect_url;
+                        }, 1000);
+                    } else {
+                        console.log('لا يوجد عنوان تحويل في الاستجابة، محاولة استخراجه من HTML');
+                        try {
+                            // البحث عن عنوان URL في استجابة HTML
+                            var redirectUrl = $(response).find('.redirect-url').attr('href');
+                            if (redirectUrl) {
+                                console.log('تم العثور على عنوان تحويل في HTML:', redirectUrl);
+                                setTimeout(function() {
+                                    window.location.href = redirectUrl;
+                                }, 1000);
+                            } else {
+                                console.log('لم يتم العثور على عنوان تحويل، إعادة تحميل الصفحة');
+                                setTimeout(function() {
+                                    window.location.reload();
+                                }, 1000);
+                            }
+                        } catch (e) {
+                            console.error('خطأ في تحليل استجابة HTML:', e);
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1000);
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('حدث خطأ أثناء إرسال النموذج باستخدام AJAX:', error);
+                    console.error('حالة الخطأ:', status);
+                    console.error('استجابة الخادم:', xhr.responseText);
+
+                    var errorMessage = 'حدث خطأ أثناء حفظ الفاتورة: ' + error;
+
+                    try {
+                        // محاولة تحليل استجابة JSON
+                        var jsonResponse = JSON.parse(xhr.responseText);
+                        if (jsonResponse && jsonResponse.message) {
+                            errorMessage = jsonResponse.message;
+                        }
+
+                        console.log('تفاصيل الخطأ من الخادم:', jsonResponse);
+
+                        // عرض أخطاء الحقول إن وجدت
+                        if (jsonResponse.errors) {
+                            var errorDetails = '<ul>';
+                            for (var field in jsonResponse.errors) {
+                                errorDetails += '<li>' + field + ': ' + jsonResponse.errors[field].join(', ') + '</li>';
+                            }
+                            errorDetails += '</ul>';
+                            errorMessage += errorDetails;
+                        }
+                    } catch (e) {
+                        console.error('خطأ في تحليل استجابة JSON:', e);
+                    }
+
+                    $('#form-errors').html(errorMessage).removeClass('alert-info').addClass('alert-danger').show();
+                }
+            });
+
+            // منع إرسال النموذج بالطريقة العادية
+            e.preventDefault();
+            return false;
+        });
+
+        // معالجة تغيير نوع الدفع
+        $('#payment_type').change(function() {
+            calculateTotals();
+        });
+
+        // إضافة صف جديد إذا لم تكن هناك بنود
+        if ($('.item-row').length === 0) {
+            addNewRow();
+        } else {
+            console.log('=== فحص بنود الفاتورة الموجودة ===');
+            // طباعة قيم الكمية لكل صف
+            $('.item-row').each(function(index) {
+                var row = $(this);
+                var quantity = row.find('.quantity').val();
+                var quantityAttr = row.find('.quantity').attr('value');
+
+                console.log(`بند #${index + 1} - قيمة الكمية (val):`, quantity);
+                console.log(`بند #${index + 1} - قيمة الكمية (attr value):`, quantityAttr);
+                console.log(`بند #${index + 1} - HTML الكامل لحقل الكمية:`, row.find('.quantity').prop('outerHTML'));
+
+                // حساب إجمالي كل صف
+                calculateRowTotal(row);
+            });
+        }
+
+        // حساب المجاميع الأولية
+        calculateTotals();
+
+        // تحديث الأسعار بناءً على نوع الفاتورة
+        $('#invoice_type').trigger('change');
+
+        // تحديث الرصيد السابق للعميل/المورد
+        updatePreviousBalance();
+    });
+
+    // دالة إضافة صف جديد
+    function addNewRow() {
+        var rowCount = $('.item-row').length;
+        var newRow = `
+            <tr class="item-row">
+                <td style="min-width: 200px;">
+                    <select name="items[${rowCount}][product]" class="form-select product-select" required>
+                        <option value="">اختر المنتج</option>
+                        {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td style="min-width: 150px;">
+                    <select name="items[${rowCount}][product_unit]" class="form-select unit-select" required>
+                        <option value="">اختر الوحدة</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="number" name="items[${rowCount}][quantity]" class="form-control quantity" value="1" min="0.01" step="0.01" required>
+                </td>
+                <td>
+                    <input type="number" name="items[${rowCount}][unit_price]" class="form-control price" value="0" min="0.01" step="0.01" required>
+                </td>
+                <td>
+                    <input type="number" name="items[${rowCount}][discount_amount]" class="form-control discount" value="0" min="0" step="0.01">
+                </td>
+                <td>
+                    <input type="number" name="items[${rowCount}][tax_amount]" class="form-control tax" value="0" min="0" step="0.01">
+                </td>
+                <td>
+                    <input type="number" name="items[${rowCount}][net_price]" class="form-control total" value="0" readonly>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+        $('#items_body').append(newRow);
+
+        // تهيئة Select2 للبحث في المنتجات في الصف الجديد
+        var newRowElement = $('.item-row').last();
+        newRowElement.find('.product-select').select2({
+            theme: 'bootstrap-5',
+            placeholder: 'اختر المنتج أو ابحث...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "لا توجد نتائج";
+                },
+                searching: function() {
+                    return "جاري البحث...";
+                }
+            }
+        });
+
+        // حساب إجمالي الصف الجديد
+        calculateRowTotal(newRowElement);
+
+        console.log('تم إضافة صف جديد');
+        return newRowElement;
+    }
+
+    // حساب إجمالي الصف
+    function calculateRowTotal(row) {
+        // طباعة قيمة الكمية الخام قبل التحويل
+        var rawQuantity = row.find('.quantity').val();
+        var rawQuantityAttr = row.find('.quantity').attr('value');
+
+        console.log('=== معلومات حساب إجمالي الصف ===');
+        console.log('قيمة الكمية الخام (val):', rawQuantity);
+        console.log('قيمة الكمية الخام (attr value):', rawQuantityAttr);
+
+        var quantity = parseFloat(rawQuantity) || 0;
+        var price = parseFloat(row.find('.price').val()) || 0;
+        var discount = parseFloat(row.find('.discount').val()) || 0;
+        var tax = parseFloat(row.find('.tax').val()) || 0;
+
+        console.log('قيمة الكمية بعد التحويل:', quantity);
+        console.log('نوع البيانات للكمية:', typeof quantity);
+
+        var total = (quantity * price) - discount + tax;
+        row.find('.total').val(total.toFixed(2));
+
+        console.log('حساب إجمالي الصف - الكمية:', quantity, 'السعر:', price, 'الخصم:', discount, 'الضريبة:', tax, 'الإجمالي:', total.toFixed(2));
+    }
+
+    // دالة لتحديث الرصيد السابق للعميل/المورد
+    function updatePreviousBalance() {
+        var contactId = $('#contact').val();
+        if (!contactId) {
+            $('#previous_balance').val('0.00');
+            calculateTotalWithBalance();
+            return;
+        }
+
+        // الحصول على الرصيد السابق من خلال البيانات المخزنة في الخيار المحدد
+        var selectedOption = $('#contact option:selected');
+        var contactType = selectedOption.data('contact-type');
+        var invoiceType = $('#invoice_type').val();
+        var balance = parseFloat(selectedOption.data('current-balance')) || 0;
+
+        // تنسيق الرصيد السابق وعرضه
+        $('#previous_balance').val(balance.toFixed(2));
+
+        // تحديث الإجمالي مع الرصيد
+        calculateTotalWithBalance();
+
+        // إذا كان الرصيد كبيرًا، يمكن تلوين الحقل للتنبيه
+        if (Math.abs(balance) > 1000) {
+            $('#previous_balance').addClass('text-danger fw-bold');
+        } else {
+            $('#previous_balance').removeClass('text-danger fw-bold');
+        }
+    }
+
+    // دالة لحساب الإجمالي مع الرصيد السابق
+    function calculateTotalWithBalance() {
+        var netAmount = parseFloat($('#net_amount').val()) || 0;
+        var previousBalance = parseFloat($('#previous_balance').val()) || 0;
+
+        // حساب الإجمالي الكلي (صافي الفاتورة + الرصيد السابق)
+        var totalWithBalance = netAmount + previousBalance;
+
+        // عرض الإجمالي الكلي
+        $('#total_with_balance').val(totalWithBalance.toFixed(2));
+    }
+
+    // حساب المجاميع الكلية
+    function calculateTotals() {
+        var totalAmount = 0;
+        var totalDiscount = 0;
+        var totalTax = 0;
+
+        $('.item-row').each(function() {
+            var row = $(this);
+            var quantity = parseFloat(row.find('.quantity').val()) || 0;
+            var price = parseFloat(row.find('.price').val()) || 0;
+            var discount = parseFloat(row.find('.discount').val()) || 0;
+            var tax = parseFloat(row.find('.tax').val()) || 0;
+
+            totalAmount += quantity * price;
+            totalDiscount += discount;
+            totalTax += tax;
+        });
+
+        var netAmount = totalAmount - totalDiscount + totalTax;
+
+        $('#total_amount').val(totalAmount.toFixed(2));
+        $('#discount_amount').val(totalDiscount.toFixed(2));
+        $('#tax_amount').val(totalTax.toFixed(2));
+        $('#net_amount').val(netAmount.toFixed(2));
+
+        // تحديث الإجمالي مع الرصيد السابق
+        calculateTotalWithBalance();
+
+        // تحديث المدفوع والمتبقي بناءً على نوع الدفع
+        var paymentType = $('#payment_type').val();
+        if (paymentType === 'cash') {
+            $('#paid_amount').val(netAmount.toFixed(2));
+            $('#remaining_amount').val('0.00');
+            $('#paid_amount').prop('readonly', true).addClass('form-control-plaintext').removeClass('form-control');
+        } else if (paymentType === 'credit') {
+            var paidAmount = parseFloat($('#paid_amount').val()) || 0;
+            var remainingAmount = netAmount - paidAmount;
+            $('#remaining_amount').val(remainingAmount.toFixed(2));
+            $('#paid_amount').prop('readonly', false).addClass('form-control').removeClass('form-control-plaintext');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ company.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ company.name }}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'company_edit' company.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{% url 'company_delete' company.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> حذف
+        </a>
+        <a href="{% url 'company_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">معلومات الشركة</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="img-fluid img-thumbnail" style="max-height: 150px;">
+                    {% else %}
+                        <div class="bg-light text-center p-5 mb-3">
+                            <i class="fas fa-building fa-5x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم الشركة</th>
+                            <td>{{ company.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ company.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف</th>
+                            <td dir="ltr">{{ company.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>البريد الإلكتروني</th>
+                            <td dir="ltr">{{ company.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرقم الضريبي</th>
+                            <td>{{ company.tax_number|default:"-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">فروع الشركة</h5>
+                <a href="{% url 'branch_add' %}" class="btn btn-light btn-sm">
+                    <i class="fas fa-plus-circle"></i> إضافة فرع جديد
+                </a>
+            </div>
+            <div class="card-body">
+                {% if branches %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>اسم الفرع</th>
+                                    <th>العنوان</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>المدير</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for branch in branches %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ branch.name }}</td>
+                                        <td>{{ branch.address|truncatechars:30 }}</td>
+                                        <td dir="ltr">{{ branch.phone }}</td>
+                                        <td>{{ branch.manager|default:"-" }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'branch_detail' branch.pk %}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'branch_edit' branch.pk %}" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'branch_delete' branch.pk %}" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        لا توجد فروع مسجلة لهذه الشركة. <a href="{% url 'branch_add' %}">أضف فرع جديد</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}إنشاء رواتب شهرية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">إنشاء رواتب شهرية</h1>
+        <a href="{% url 'employees:salary_list' %}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
+            <i class="fas fa-arrow-right fa-sm text-white-50"></i> العودة للقائمة
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">إنشاء رواتب شهرية لجميع الموظفين</h6>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <p>سيتم إنشاء رواتب لجميع الموظفين النشطين للشهر المحدد. سيتم استخدام الراتب الأساسي المحدد في بيانات الموظف.</p>
+                <p>يمكنك تعديل الرواتب بعد إنشائها من خلال قائمة الرواتب.</p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.month.id_for_label }}">{{ form.month.label }}</label>
+                            {{ form.month }}
+                            {% if form.month.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.month.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.month.help_text %}
+                                <small class="form-text text-muted">{{ form.month.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>
+                            {{ form.year }}
+                            {% if form.year.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.year.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.year.help_text %}
+                                <small class="form-text text-muted">{{ form.year.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="{{ form.safe.id_for_label }}">{{ form.safe.label }}</label>
+                            {{ form.safe }}
+                            {% if form.safe.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.safe.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.safe.help_text %}
+                                <small class="form-text text-muted">{{ form.safe.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-check">
+                            {{ form.auto_post }}
+                            <label class="form-check-label" for="{{ form.auto_post.id_for_label }}">
+                                {{ form.auto_post.label }}
+                            </label>
+                            {% if form.auto_post.help_text %}
+                                <small class="form-text text-muted">{{ form.auto_post.help_text }}</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cogs"></i> إنشاء الرواتب
+                    </button>
+                    <a href="{% url 'employees:salary_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if preview_data %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">معاينة الرواتب</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الراتب الأساسي</th>
+                            <th>الخصومات</th>
+                            <th>خصم السلف</th>
+                            <th>صافي الراتب</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in preview_data %}
+                        <tr>
+                            <td>{{ item.employee.name }}</td>
+                            <td>{{ item.base_salary }}</td>
+                            <td>{{ item.deductions }}</td>
+                            <td>{{ item.loans_deduction }}</td>
+                            <td>{{ item.net_salary }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>الإجمالي</th>
+                            <th>{{ total_base_salary }}</th>
+                            <th>{{ total_deductions }}</th>
+                            <th>{{ total_loans_deduction }}</th>
+                            <th>{{ total_net_salary }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تهيئة حقول التاريخ
+        if (!$('#{{ form.year.id_for_label }}').val()) {
+            $('#{{ form.year.id_for_label }}').val(new Date().getFullYear());
+        }
+        
+        if (!$('#{{ form.month.id_for_label }}').val()) {
+            $('#{{ form.month.id_for_label }}').val(new Date().getMonth() + 1);
+        }
+    });
+</script>
+{% endblock %}

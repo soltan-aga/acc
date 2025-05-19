@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ safe.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ safe.name }}</h2>
+        <p class="text-muted">
+            <a href="{% url 'branch_detail' safe.branch.pk %}">{{ safe.branch.name }}</a> / 
+            <a href="{% url 'company_detail' safe.branch.company.pk %}">{{ safe.branch.company.name }}</a>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'safe_edit' safe.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{% url 'safe_delete' safe.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> حذف
+        </a>
+        <a href="{% url 'safe_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">معلومات الخزنة</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="display-1">
+                        <i class="fas fa-money-check-alt text-success"></i>
+                    </div>
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم الخزنة</th>
+                            <td>{{ safe.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الفرع</th>
+                            <td>
+                                <a href="{% url 'branch_detail' safe.branch.pk %}">
+                                    {{ safe.branch.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>الشركة</th>
+                            <td>
+                                <a href="{% url 'company_detail' safe.branch.company.pk %}">
+                                    {{ safe.branch.company.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الافتتاحي</th>
+                            <td>{{ safe.initial_balance }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الحالي</th>
+                            <td>
+                                <span class="{% if safe.current_balance < 0 %}text-danger{% elif safe.current_balance > 0 %}text-success{% endif %} fw-bold">
+                                    {{ safe.current_balance }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">حركات الخزنة</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    سيتم عرض حركات الخزنة هنا عند إضافة معاملات مالية.
+                </div>
+                <!-- هنا يمكن إضافة جدول حركات الخزنة لاحقاً -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف حركة مخزون{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">حذف حركة مخزون</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">تأكيد الحذف</h5>
+                        <p>هل أنت متأكد من حذف حركة المخزون للمنتج "{{ transaction.product.name }}"؟</p>
+                        <hr>
+                        <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>بيانات الحركة:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>المنتج:</strong> {{ transaction.product.name }}</li>
+                            <li class="list-group-item"><strong>التاريخ:</strong> {{ transaction.date|date:"Y-m-d" }}</li>
+                            <li class="list-group-item"><strong>نوع العملية:</strong> {{ transaction.get_transaction_type_display }}</li>
+                            <li class="list-group-item"><strong>الكمية:</strong> {{ transaction.quantity }} {{ transaction.product_unit.name }}</li>
+                            <li class="list-group-item"><strong>الوصف:</strong> {{ transaction.description|default:"لا يوجد" }}</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'product_transaction_detail' transaction.id %}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

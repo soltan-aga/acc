@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف الشركة {{ company.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">تأكيد الحذف</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <p>هل أنت متأكد من حذف الشركة <strong>{{ company.name }}</strong>؟</p>
+                    <p class="mb-0">سيتم حذف جميع البيانات المرتبطة بهذه الشركة بما في ذلك الفروع والمخازن والخزن.</p>
+                </div>
+                
+                <div class="text-center mb-4">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="img-fluid img-thumbnail" style="max-height: 100px;">
+                    {% else %}
+                        <div class="bg-light text-center p-3 mb-3">
+                            <i class="fas fa-building fa-3x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم الشركة</th>
+                            <td>{{ company.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ company.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف</th>
+                            <td dir="ltr">{{ company.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>البريد الإلكتروني</th>
+                            <td dir="ltr">{{ company.email }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> تأكيد الحذف
+                        </button>
+                        <a href="{% url 'company_detail' company.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

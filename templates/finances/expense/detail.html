@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل المصروف{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">تفاصيل المصروف #{{ expense.number }}</h5>
+                    <div class="btn-group" role="group">
+                        {% if not expense.is_posted %}
+                        <a href="{% url 'expense_edit' expense.id %}" class="btn btn-info">
+                            <i class="fas fa-edit"></i> تعديل
+                        </a>
+                        <a href="{% url 'expense_delete' expense.id %}" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> حذف
+                        </a>
+                        <a href="{% url 'expense_post' expense.id %}" class="btn btn-success">
+                            <i class="fas fa-check"></i> ترحيل
+                        </a>
+                        {% else %}
+                        <a href="{% url 'expense_unpost' expense.id %}" class="btn btn-warning">
+                            <i class="fas fa-undo"></i> إلغاء الترحيل
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'expense_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> العودة
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="card-subtitle mb-3">معلومات المصروف</h6>
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 30%">رقم المستند</th>
+                                        <td>{{ expense.number }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <td>{{ expense.date|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>القسم</th>
+                                        <td>{{ expense.category.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>المبلغ</th>
+                                        <td>{{ expense.amount }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>المستفيد</th>
+                                        <td>{{ expense.payee }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>الرقم المرجعي</th>
+                                        <td>{{ expense.reference_number|default:"-" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="card-subtitle mb-3">معلومات إضافية</h6>
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 30%">الخزنة</th>
+                                        <td>{{ expense.safe.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>حالة الترحيل</th>
+                                        <td>
+                                            {% if expense.is_posted %}
+                                            <span class="badge bg-success">مرحل</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">غير مرحل</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>تاريخ الإنشاء</th>
+                                        <td>{{ expense.created_at|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>تاريخ التعديل</th>
+                                        <td>{{ expense.updated_at|date:"Y-m-d H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>ملاحظات</th>
+                                        <td>{{ expense.notes|default:"-"|linebreaks }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

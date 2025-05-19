@@ -1,0 +1,485 @@
+{% load static %}
+{% load finance_extras %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الإيرادات والمصروفات</title>
+    <style>
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Regular.ttf" %}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Bold.ttf" %}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: 'Tajawal', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: #333;
+            font-size: 12pt;
+        }
+
+        .container {
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 0.5cm;
+        }
+
+        .header {
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+            max-height: 15vh; /* تقليل ارتفاع الهيدر ليكون حوالي 15% من ارتفاع الصفحة */
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .company-info {
+            text-align: right;
+            flex: 1;
+        }
+
+        .logo-container {
+            text-align: left;
+            flex: 0 0 auto;
+        }
+
+        .company-logo {
+            max-height: 60px;
+            max-width: 150px;
+        }
+
+        .company-name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 3px 0;
+        }
+
+        .company-details {
+            font-size: 8pt;
+            color: #555;
+        }
+
+        .report-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .report-date {
+            font-size: 10pt;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+            text-align: center;
+            max-height: 5vh; /* تقليل ارتفاع ملخص الإجماليات */
+        }
+
+        .summary-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            width: 45%;
+        }
+
+        .summary-box.income {
+            background-color: #d4edda;
+        }
+
+        .summary-box.expense {
+            background-color: #f8d7da;
+        }
+
+        .summary-title {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 10pt;
+        }
+
+        .summary-amount {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 5px;
+            text-align: right;
+            font-size: 10pt;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 10px 0 5px 0;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .income-title {
+            color: #28a745;
+        }
+
+        .expense-title {
+            color: #dc3545;
+        }
+
+        .text-end {
+            text-align: left;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10pt;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+
+        .no-print {
+            display: none;
+        }
+
+        @media print {
+            body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .print-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .print-buttons button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Tajawal', Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        .print-button {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .export-button {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .back-button {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- رأس الصفحة - معلومات الشركة -->
+        <div class="header">
+            <div class="header-content">
+                <div class="company-info">
+                    <h1 class="company-name">{{ company.name }}</h1>
+                    <div class="company-details">
+                        {% if company.address %}العنوان: {{ company.address }}{% endif %}
+                        {% if company.phone %} | هاتف: {{ company.phone }}{% endif %}
+                        {% if company.email %} | بريد إلكتروني: {{ company.email }}{% endif %}
+                        {% if company.tax_number %} | الرقم الضريبي: {{ company.tax_number }}{% endif %}
+                    </div>
+                </div>
+                <div class="logo-container">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="company-logo">
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- عنوان التقرير -->
+        <h2 class="report-title">تقرير الإيرادات والمصروفات</h2>
+        <div class="report-date">
+            {% if from_date and to_date %}
+                الفترة من {{ from_date }} إلى {{ to_date }}
+            {% elif from_date %}
+                من تاريخ {{ from_date }}
+            {% elif to_date %}
+                حتى تاريخ {{ to_date }}
+            {% else %}
+                جميع الفترات
+            {% endif %}
+        </div>
+
+        <!-- ملخص الإجماليات -->
+        <div class="summary">
+            <div class="summary-box income">
+                <div class="summary-title">إجمالي الإيرادات</div>
+                <div class="summary-amount">{{ total_income }}</div>
+            </div>
+            <div class="summary-box expense">
+                <div class="summary-title">إجمالي المصروفات</div>
+                <div class="summary-amount">{{ total_expense }}</div>
+            </div>
+        </div>
+
+        <!-- تفاصيل الإيرادات -->
+        <h3 class="section-title income-title">تفاصيل الإيرادات</h3>
+        {% if incomes %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>القسم</th>
+                        <th>الدافع</th>
+                        <th>المبلغ</th>
+                        <th width="35%">الملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for income in incomes %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ income.date|date:"Y-m-d" }}</td>
+                            <td>{{ income.category.name }}</td>
+                            <td>{{ income.payer }}</td>
+                            <td class="text-end">{{ income.amount }}</td>
+                            <td>{{ income.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="4" class="text-end">الإجمالي</th>
+                        <th class="text-end">{{ total_income }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        {% else %}
+            <p>لا توجد إيرادات مطابقة لمعايير البحث.</p>
+        {% endif %}
+
+        <!-- تفاصيل المصروفات -->
+        <h3 class="section-title expense-title">تفاصيل المصروفات</h3>
+        {% if expenses %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>التاريخ</th>
+                        <th>القسم</th>
+                        <th>المستفيد</th>
+                        <th>المبلغ</th>
+                        <th width="35%">الملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ expense.date|date:"Y-m-d" }}</td>
+                            <td>{{ expense.category.name }}</td>
+                            <td>{{ expense.payee }}</td>
+                            <td class="text-end">{{ expense.amount }}</td>
+                            <td>{{ expense.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="4" class="text-end">الإجمالي</th>
+                        <th class="text-end">{{ total_expense }}</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            </table>
+        {% else %}
+            <p>لا توجد مصروفات مطابقة لمعايير البحث.</p>
+        {% endif %}
+
+        <!-- تذييل الصفحة -->
+        <div class="footer">
+            تم إنشاء هذا التقرير بتاريخ {{ current_date|date:"Y-m-d H:i" }}
+        </div>
+
+        <!-- أزرار الطباعة والتصدير (لا تظهر عند الطباعة) -->
+        <div class="print-buttons no-print">
+            <button onclick="window.print();" class="print-button">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </button>
+            <button onclick="exportToPDF();" class="export-button">
+                <i class="fas fa-file-pdf"></i> تصدير PDF
+            </button>
+            <button onclick="exportToExcel();" class="export-button">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </button>
+            <button onclick="window.history.back();" class="back-button">
+                <i class="fas fa-arrow-right"></i> العودة
+            </button>
+        </div>
+    </div>
+
+    <!-- سكريبت للتصدير -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+
+            // إخفاء أزرار الطباعة قبل التصدير
+            const printButtons = document.querySelector('.print-buttons');
+            printButtons.style.display = 'none';
+
+            // إنشاء PDF
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const container = document.querySelector('.container');
+
+            html2canvas(container, {
+                scale: 2,
+                useCORS: true
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                doc.save('تقرير_الإيرادات_والمصروفات.pdf');
+
+                // إعادة عرض أزرار الطباعة
+                printButtons.style.display = 'block';
+            });
+        }
+
+        function exportToExcel() {
+            // إنشاء مصفوفة للإيرادات
+            const incomeData = [
+                ['#', 'التاريخ', 'رقم المستند', 'القسم', 'الدافع', 'المبلغ', 'الملاحظات']
+            ];
+
+            // إضافة بيانات الإيرادات
+            const incomeRows = document.querySelectorAll('h3.income-title + table tbody tr');
+            incomeRows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                const rowData = [
+                    index + 1,
+                    cells[1].textContent,
+                    cells[2].textContent,
+                    cells[3].textContent,
+                    cells[4].textContent,
+                    cells[5].textContent,
+                    cells[6].textContent
+                ];
+                incomeData.push(rowData);
+            });
+
+            // إضافة الإجمالي
+            incomeData.push(['', '', '', '', 'الإجمالي', '{{ total_income }}', '']);
+
+            // إنشاء مصفوفة للمصروفات
+            const expenseData = [
+                ['#', 'التاريخ', 'رقم المستند', 'القسم', 'المستفيد', 'المبلغ', 'الملاحظات']
+            ];
+
+            // إضافة بيانات المصروفات
+            const expenseRows = document.querySelectorAll('h3.expense-title + table tbody tr');
+            expenseRows.forEach((row, index) => {
+                const cells = row.querySelectorAll('td');
+                const rowData = [
+                    index + 1,
+                    cells[1].textContent,
+                    cells[2].textContent,
+                    cells[3].textContent,
+                    cells[4].textContent,
+                    cells[5].textContent,
+                    cells[6].textContent
+                ];
+                expenseData.push(rowData);
+            });
+
+            // إضافة الإجمالي
+            expenseData.push(['', '', '', '', 'الإجمالي', '{{ total_expense }}', '']);
+
+            // إنشاء ملف Excel
+            const wb = XLSX.utils.book_new();
+
+            // إضافة ورقة الإيرادات
+            const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
+            XLSX.utils.book_append_sheet(wb, wsIncome, 'الإيرادات');
+
+            // إضافة ورقة المصروفات
+            const wsExpense = XLSX.utils.aoa_to_sheet(expenseData);
+            XLSX.utils.book_append_sheet(wb, wsExpense, 'المصروفات');
+
+            // تعيين اتجاه الورقة من اليمين إلى اليسار
+            wsIncome['!dir'] = 'rtl';
+            wsExpense['!dir'] = 'rtl';
+
+            // تصدير الملف
+            XLSX.writeFile(wb, 'تقرير_الإيرادات_والمصروفات.xlsx');
+        }
+    </script>
+</body>
+</html>

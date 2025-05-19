@@ -1,0 +1,51 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}تسجيل الدخول - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0 text-center"><i class="fas fa-sign-in-alt me-2"></i>تسجيل الدخول</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>خطأ:</strong> اسم المستخدم أو كلمة المرور غير صحيحة.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">اسم المستخدم</label>
+                        <input type="text" name="username" id="id_username" class="form-control" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال اسم المستخدم.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">كلمة المرور</label>
+                        <input type="password" name="password" id="id_password" class="form-control" required>
+                        <div class="invalid-feedback">
+                            يرجى إدخال كلمة المرور.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i>تسجيل الدخول
+                        </button>
+                    </div>
+                    
+                    <input type="hidden" name="next" value="{{ next }}">
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

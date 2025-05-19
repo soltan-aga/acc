@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}قائمة الأذونات المخزنية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">قائمة الأذونات المخزنية</h3>
+                    <div class="card-tools">
+                        <div class="btn-group">
+                            <a href="{% url 'store_permit_add' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> إضافة إذن جديد
+                            </a>
+                            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-expanded="false">
+                                <span class="sr-only">Toggle Dropdown</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="{% url 'store_permit_add_issue' %}">
+                                    <i class="fas fa-minus-circle text-danger"></i> إضافة إذن صرف
+                                </a>
+                                <a class="dropdown-item" href="{% url 'store_permit_add_receive' %}">
+                                    <i class="fas fa-plus-circle text-success"></i> إضافة إذن استلام
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{% url 'store_permits_report' %}">
+                                    <i class="fas fa-chart-bar text-info"></i> تقرير الأذونات المخزنية
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- فلاتر البحث -->
+                    {% include 'partials/_search_filters.html' with filters=permit_filters date_filter=True search_placeholder="رقم الإذن، الشخص..." %}
+
+                    <!-- جدول الأذونات -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>رقم الإذن</th>
+                                    <th>نوع الإذن</th>
+                                    <th>التاريخ</th>
+                                    <th>المخزن</th>
+                                    <th>الشخص</th>
+                                    <th>السائق</th>
+                                    <th>المندوب</th>
+                                    <th>حالة الترحيل</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for permit in permits %}
+                                <tr>
+                                    <td>{{ permit.number }}</td>
+                                    <td>
+                                        {% if permit.permit_type == 'issue' %}
+                                            <span class="badge badge-danger">إذن صرف</span>
+                                        {% else %}
+                                            <span class="badge badge-success">إذن استلام</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ permit.date|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ permit.store.name }}</td>
+                                    <td>{{ permit.person_name }}</td>
+                                    <td>{{ permit.driver.name|default:"-" }}</td>
+                                    <td>{{ permit.representative.name|default:"-" }}</td>
+                                    <td>
+                                        {% if permit.is_posted %}
+                                            <span class="badge badge-success">مرحل</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">غير مرحل</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'store_permit_detail' permit.id %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'store_permit_edit' permit.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'store_permit_delete' permit.id %}" class="btn btn-sm btn-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                            {% if permit.is_posted %}
+                                                <a href="{% url 'store_permit_unpost' permit.id %}" class="btn btn-sm btn-warning">
+                                                    <i class="fas fa-undo"></i> إلغاء الترحيل
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'store_permit_post' permit.id %}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check"></i> ترحيل
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center">لا توجد أذونات مخزنية</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

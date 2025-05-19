@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الصفحة الرئيسية للمزرعة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">الصفحة الرئيسية للمزرعة</h3>
+                </div>
+                <div class="card-body">
+                    <p>مرحباً بك في نظام إدارة المزرعة</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">المفرخة</h5>
+                                    <p class="card-text">إدارة المفرخة وعمليات التفريخ</p>
+                                    <a href="{% url 'hatchery:batch_list' %}" class="btn btn-primary">الذهاب إلى المفرخة</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">المخزون</h5>
+                                    <p class="card-text">إدارة المخزون والمستودعات</p>
+                                    <a href="{% url 'inventory:disinfectant_list' %}" class="btn btn-primary">الذهاب إلى المخزون</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

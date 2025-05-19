@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ store.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ store.name }}</h2>
+        <p class="text-muted">
+            <a href="{% url 'branch_detail' store.branch.pk %}">{{ store.branch.name }}</a> / 
+            <a href="{% url 'company_detail' store.branch.company.pk %}">{{ store.branch.company.name }}</a>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'store_edit' store.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{% url 'store_delete' store.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> حذف
+        </a>
+        <a href="{% url 'store_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">معلومات المخزن</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم المخزن</th>
+                            <td>{{ store.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الفرع</th>
+                            <td>
+                                <a href="{% url 'branch_detail' store.branch.pk %}">
+                                    {{ store.branch.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>الشركة</th>
+                            <td>
+                                <a href="{% url 'company_detail' store.branch.company.pk %}">
+                                    {{ store.branch.company.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ store.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>أمين المخزن</th>
+                            <td>{{ store.keeper|default:"-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if store.notes %}
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">ملاحظات</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ store.notes|linebreaks }}</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">المخزون</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    سيتم عرض المخزون هنا عند إضافة منتجات للمخزن.
+                </div>
+                <!-- هنا يمكن إضافة جدول المخزون لاحقاً -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}إعدادات الحساب | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">إعدادات الحساب</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="accountTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">المعلومات الشخصية</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab" aria-controls="password" aria-selected="false">تغيير كلمة المرور</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="avatar-tab" data-bs-toggle="tab" data-bs-target="#avatar" type="button" role="tab" aria-controls="avatar" aria-selected="false">الصورة الشخصية</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button" role="tab" aria-controls="preferences" aria-selected="false">التفضيلات</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content p-3" id="accountTabsContent">
+                    <!-- المعلومات الشخصية -->
+                    <div class="tab-pane fade show active" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                        <form method="post" action="{% url 'update_profile' %}">
+                            {% csrf_token %}
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label">اسم المستخدم</label>
+                                    <input type="text" id="username" name="username" class="form-control" value="{{ user.username }}" readonly>
+                                    <div class="form-text">لا يمكن تغيير اسم المستخدم.</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" id="email" name="email" class="form-control" value="{{ user.email }}" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="first_name" class="form-label">الاسم الأول</label>
+                                    <input type="text" id="first_name" name="first_name" class="form-control" value="{{ user.first_name }}">
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_name" class="form-label">الاسم الأخير</label>
+                                    <input type="text" id="last_name" name="last_name" class="form-control" value="{{ user.last_name }}">
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- تغيير كلمة المرور -->
+                    <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                        <form method="post" action="{% url 'change_password' %}">
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">كلمة المرور الحالية</label>
+                                <input type="password" id="current_password" name="current_password" class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="new_password1" class="form-label">كلمة المرور الجديدة</label>
+                                <input type="password" id="new_password1" name="new_password1" class="form-control" required>
+                                <div class="form-text">
+                                    <ul>
+                                        <li>يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل.</li>
+                                        <li>يجب ألا تكون كلمة المرور شائعة جدًا.</li>
+                                        <li>يجب ألا تكون كلمة المرور مكونة من أرقام فقط.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="new_password2" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                <input type="password" id="new_password2" name="new_password2" class="form-control" required>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">تغيير كلمة المرور</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- الصورة الشخصية -->
+                    <div class="tab-pane fade" id="avatar" role="tabpanel" aria-labelledby="avatar-tab">
+                        <form method="post" action="{% url 'update_avatar' %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <div class="text-center mb-4">
+                                {% if user.profile.avatar %}
+                                    <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                                {% else %}
+                                    <img src="/static/img/default-avatar.png" alt="{{ user.username }}" class="rounded-circle img-thumbnail" style="width: 150px; height: 150px; object-fit: cover;">
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="avatar" class="form-label">اختر صورة جديدة</label>
+                                <input type="file" id="avatar" name="avatar" class="form-control" accept="image/*">
+                                <div class="form-text">الحد الأقصى لحجم الصورة: 2 ميجابايت. الصيغ المدعومة: JPG، PNG، GIF.</div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">تحديث الصورة</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- التفضيلات -->
+                    <div class="tab-pane fade" id="preferences" role="tabpanel" aria-labelledby="preferences-tab">
+                        <form method="post" action="{% url 'update_preferences' %}">
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label class="form-label">الإشعارات</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" checked>
+                                    <label class="form-check-label" for="email_notifications">تلقي إشعارات عبر البريد الإلكتروني</label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="language" class="form-label">اللغة المفضلة</label>
+                                <select id="language" name="language" class="form-select">
+                                    <option value="ar" selected>العربية</option>
+                                    <option value="en">الإنجليزية</option>
+                                </select>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">حفظ التفضيلات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

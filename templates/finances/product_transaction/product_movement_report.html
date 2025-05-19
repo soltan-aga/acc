@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير حركة المنتج {{ product.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">تقرير حركة المنتج</h2>
+        <p class="text-muted">
+            <a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'product_transaction_add' %}?product={{ product.pk }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> إضافة حركة جديدة
+        </a>
+        <a href="{% url 'product_inventory' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للمخزون
+        </a>
+        <button class="btn btn-success" onclick="window.print()">
+            <i class="fas fa-print"></i> طباعة
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">معلومات المنتج</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid rounded" style="max-height: 150px;">
+                    {% else %}
+                        <div class="display-1">
+                            <i class="fas fa-box text-primary"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم المنتج</th>
+                            <td>{{ product.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الكود</th>
+                            <td>{{ product.code|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>القسم</th>
+                            <td>
+                                {% if product.category %}
+                                    <a href="{% url 'category_detail' product.category.pk %}">{{ product.category.name }}</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>المخزن الافتراضي</th>
+                            <td>
+                                {% if product.default_store %}
+                                    <a href="{% url 'store_detail' product.default_store.pk %}">{{ product.default_store.name }}</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الافتتاحي</th>
+                            <td>{{ product.initial_balance }}</td>
+                        </tr>
+                        <tr>
+                            <th>الرصيد الحالي</th>
+                            <td>
+                                <span class="{% if product.current_balance <= 0 %}text-danger{% else %}text-success{% endif %} fw-bold">
+                                    {{ product.current_balance }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">خيارات التصفية</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">نوع العملية</label>
+                        <select name="type" id="type" class="form-select">
+                            <option value="">-- جميع العمليات --</option>
+                            {% for type_code, type_name in transaction_types %}
+                                <option value="{{ type_code }}" {% if selected_type == type_code %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="store" class="form-label">المخزن</label>
+                        <select name="store" id="store" class="form-select">
+                            <option value="">-- جميع المخازن --</option>
+                            {% for store in stores %}
+                                <option value="{{ store.id }}" {% if selected_store == store.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ store.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="from_date" class="form-label">من تاريخ</label>
+                        <input type="date" name="from_date" id="from_date" class="form-control" value="{{ from_date|default:'' }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="to_date" class="form-label">إلى تاريخ</label>
+                        <input type="date" name="to_date" id="to_date" class="form-control" value="{{ to_date|default:'' }}">
+                    </div>
+                    
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> تصفية
+                        </button>
+                        <a href="{% url 'product_movement_report' product.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> إعادة تعيين
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">حركات المنتج</h5>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-bordered">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>#</th>
+                                    <th>التاريخ</th>
+                                    <th>نوع العملية</th>
+                                    <th>المخزن</th>
+                                    <th>الكمية</th>
+                                    <th>الوحدة</th>
+                                    <th>العميل/المورد</th>
+                                    <th>رقم الفاتورة</th>
+                                    <th>الرصيد بعد</th>
+                                    <th class="no-print">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ transaction.date|date:"Y-m-d H:i" }}</td>
+                                        <td>
+                                            {% if transaction.transaction_type == 'sale' %}
+                                                <span class="badge bg-danger">{{ transaction.get_transaction_type_display }}</span>
+                                            {% elif transaction.transaction_type == 'purchase' %}
+                                                <span class="badge bg-success">{{ transaction.get_transaction_type_display }}</span>
+                                            {% elif transaction.transaction_type == 'sale_return' %}
+                                                <span class="badge bg-warning">{{ transaction.get_transaction_type_display }}</span>
+                                            {% elif transaction.transaction_type == 'purchase_return' %}
+                                                <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ transaction.store.name }}</td>
+                                        <td class="text-center">{{ transaction.quantity }}</td>
+                                        <td>{{ transaction.product_unit.unit.name }}</td>
+                                        <td>
+                                            {% if transaction.invoice and transaction.invoice.contact %}
+                                                <a href="{% url 'contact_detail' transaction.invoice.contact.pk %}">
+                                                    {{ transaction.invoice.contact.name }}
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if transaction.invoice %}
+                                                <a href="{% url 'invoice_detail' transaction.invoice.pk %}">
+                                                    {{ transaction.invoice.number }}
+                                                </a>
+                                            {% else %}
+                                                {{ transaction.reference_number|default:"-" }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">{{ transaction.balance_after }}</td>
+                                        <td class="no-print">
+                                            <a href="{% url 'product_transaction_detail' transaction.pk %}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        لا توجد حركات مسجلة لهذا المنتج. <a href="{% url 'product_transaction_add' %}?product={{ product.pk }}">أضف حركة جديدة</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        .card-header {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+            border-bottom: 2px solid #000 !important;
+        }
+        
+        .badge {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+            background-color: transparent !important;
+        }
+        
+        .table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+        
+        .table th, 
+        .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+        
+        .table thead th {
+            background-color: #f2f2f2 !important;
+            color: #000 !important;
+            font-weight: bold !important;
+        }
+    }
+</style>
+{% endblock %}

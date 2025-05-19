@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير السلف الشهري: {{ month_name }} {{ year }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .report-date {
+            font-size: 14pt;
+            margin-bottom: 15px;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .stats-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 10px;
+            border: 1px solid #000;
+        }
+
+        .stats-paid {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .stats-unpaid {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .stats-total {
+            background-color: #007bff;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th, table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10pt;
+        }
+
+        .bg-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .bg-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .bg-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .bg-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        @media print {
+            body {
+                padding: 10mm;
+                margin: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            /* تحسين عرض الصفحة */
+            @page {
+                size: portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="report-header">
+            <h1 class="report-title">تقرير السلف الشهري: {{ month_name }} {{ year }}</h1>
+            <h2 class="report-date">تاريخ التقرير: {{ now|date:"Y-m-d" }}</h2>
+        </div>
+
+        <div class="stats-container">
+            <div>
+                <span class="stats-badge stats-total">إجمالي السلف: {{ total_amount }}</span>
+            </div>
+            <div>
+                <span class="stats-badge stats-paid">المسددة: {{ total_paid }}</span>
+            </div>
+            <div>
+                <span class="stats-badge stats-unpaid">غير المسددة: {{ total_unpaid }}</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>الموظف</th>
+                    <th>التاريخ</th>
+                    <th>المبلغ</th>
+                    <th>الخزنة</th>
+                    <th>حالة السداد</th>
+                    <th>حالة الترحيل</th>
+                    <th>الوصف</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ loan.employee.name }}</td>
+                    <td>{{ loan.date|date:"Y-m-d" }}</td>
+                    <td>{{ loan.amount }}</td>
+                    <td>{{ loan.safe.name }}</td>
+                    <td>
+                        {% if loan.is_paid %}
+                        <span class="badge bg-success">تم السداد</span>
+                        {% else %}
+                        <span class="badge bg-danger">لم يتم السداد</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if loan.is_posted %}
+                        <span class="badge bg-success">مرحل</span>
+                        {% else %}
+                        <span class="badge bg-warning">غير مرحل</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ loan.description|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">لا يوجد سلف في هذا الشهر</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-primary">طباعة</button>
+            <button onclick="exportToPDF()" class="btn btn-danger">تصدير PDF</button>
+            <button onclick="exportToExcel()" class="btn btn-success">تصدير إكسل</button>
+            <button onclick="window.close()" class="btn btn-secondary">إغلاق</button>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+        <script>
+            // تصدير إلى PDF
+            function exportToPDF() {
+                const { jsPDF } = window.jspdf;
+
+                // إخفاء أزرار الطباعة والتصدير
+                const printButtons = document.querySelector('.no-print');
+                printButtons.style.display = 'none';
+
+                // إنشاء PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+
+                // تحويل المحتوى إلى صورة
+                html2canvas(document.querySelector('.container'), {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    width: document.querySelector('.container').offsetWidth,
+                    height: document.querySelector('.container').offsetHeight,
+                    windowWidth: document.querySelector('.container').scrollWidth,
+                    windowHeight: document.querySelector('.container').scrollHeight
+                }).then(canvas => {
+                    // إضافة الصورة إلى PDF
+                    const imgData = canvas.toDataURL('image/png');
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+
+                    // حساب أبعاد الصورة مع الحفاظ على النسبة
+                    const imgWidth = pageWidth - 20; // ترك هامش 10مم من كل جانب
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                    // حساب موضع الصورة لتكون في وسط الصفحة
+                    const x = 10; // هامش 10مم من اليمين
+                    const y = 10; // هامش 10مم من الأعلى
+
+                    doc.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+                    // تنزيل الملف
+                    doc.save('تقرير_السلف_الشهري_{{ month_name }}_{{ year }}.pdf');
+
+                    // إظهار أزرار الطباعة والتصدير مرة أخرى
+                    printButtons.style.display = 'block';
+                });
+            }
+
+            // تصدير إلى إكسل
+            function exportToExcel() {
+                // إنشاء مصفوفة لبيانات الإكسل
+                const data = [];
+
+                // إضافة عنوان التقرير
+                data.push(['تقرير السلف الشهري: {{ month_name }} {{ year }}']);
+                data.push(['تاريخ التقرير: {{ now|date:"Y-m-d" }}']);
+                data.push([]);
+
+                // إضافة إحصائيات السلف
+                data.push(['إجمالي السلف', 'المسددة', 'غير المسددة']);
+                data.push(['{{ total_amount }}', '{{ total_paid }}', '{{ total_unpaid }}']);
+                data.push([]);
+
+                // الحصول على جدول البيانات
+                const table = document.querySelector('table');
+                const rows = table.querySelectorAll('tr');
+
+                // إضافة رأس الجدول
+                const headerRow = [];
+                const headerCells = rows[0].querySelectorAll('th');
+                headerCells.forEach(cell => {
+                    headerRow.push(cell.textContent.trim());
+                });
+                data.push(headerRow);
+
+                // إضافة بيانات الجدول
+                for (let i = 1; i < rows.length; i++) {
+                    const rowData = [];
+                    const cells = rows[i].querySelectorAll('td');
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent.trim());
+                    });
+                    data.push(rowData);
+                }
+
+                // إنشاء ورقة عمل
+                const ws = XLSX.utils.aoa_to_sheet(data);
+
+                // تعيين اتجاه من اليمين إلى اليسار
+                ws['!dir'] = 'rtl';
+
+                // إنشاء مصنف عمل
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'السلف الشهرية');
+
+                // تنزيل الملف
+                XLSX.writeFile(wb, 'تقرير_السلف_الشهري_{{ month_name }}_{{ year }}.xlsx');
+            }
+        </script>
+    </div>
+</body>
+</html>

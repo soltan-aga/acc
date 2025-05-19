@@ -1,0 +1,160 @@
+{% extends "employees/base.html" %}
+{% load static %}
+
+{% block title %}{{ title|default:"إضافة سجل حضور" }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ title|default:"إضافة سجل حضور" }}</h1>
+        <div>
+            <a href="{% url 'employees:attendance_daily' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للحضور اليومي
+            </a>
+            <a href="{% url 'employees:attendance_list' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> قائمة سجلات الحضور
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">بيانات الحضور</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+                            {{ form.employee }}
+                            {% if form.employee.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.employee.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.date.id_for_label }}">{{ form.date.label }}</label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.status.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="{{ form.check_in.id_for_label }}">{{ form.check_in.label }}</label>
+                            {{ form.check_in }}
+                            {% if form.check_in.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.check_in.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="{{ form.check_out.id_for_label }}">{{ form.check_out.label }}</label>
+                            {{ form.check_out }}
+                            {% if form.check_out.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.check_out.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.notes.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> حفظ
+                    </button>
+                    <a href="{% url 'employees:attendance_daily' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // تحديث حالة حقول وقت الحضور والانصراف بناءً على الحالة المختارة
+        function updateTimeFields() {
+            var status = $('#id_status').val();
+            if (status === 'absent' || status === 'excused') {
+                $('#id_check_in').prop('disabled', true).val('');
+                $('#id_check_out').prop('disabled', true).val('');
+            } else {
+                $('#id_check_in').prop('disabled', false);
+                $('#id_check_out').prop('disabled', false);
+            }
+        }
+
+        // تحديث حقول الوقت عند تغيير الحالة
+        $('#id_status').on('change', updateTimeFields);
+
+        // تحديث حقول الوقت عند تحميل الصفحة
+        updateTimeFields();
+    });
+</script>
+{% endblock %}

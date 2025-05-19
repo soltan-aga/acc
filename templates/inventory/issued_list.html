@@ -1,0 +1,58 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}قائمة المطهرات المنصرفة - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-dolly me-2"></i>قائمة المطهرات المنصرفة</h4>
+            </div>
+            <div class="card-body">
+                {% if issued_items %}
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المطهر</th>
+                                <th>تاريخ الصرف</th>
+                                <th>الكمية</th>
+                                <th>صرف إلى</th>
+                                <th>الغرض من الصرف</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issued in issued_items %}
+                            <tr>
+                                <td>{{ issued.disinfectant }}</td>
+                                <td>{{ issued.date }}</td>
+                                <td>{{ issued.quantity }} {{ issued.disinfectant.unit }}</td>
+                                <td>{{ issued.issued_to }}</td>
+                                <td>{{ issued.purpose }}</td>
+                                <td>
+                                    <a href="{% url 'inventory:issued_detail' issued.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:issued_update' issued.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'inventory:issued_delete' issued.id %}" class="btn btn-sm btn-danger delete-confirm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">لا توجد مطهرات منصرفة مسجلة حالياً</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

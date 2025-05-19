@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}حذف المخزن {{ store.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h4 class="card-title mb-0">تأكيد الحذف</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <p>هل أنت متأكد من حذف المخزن <strong>{{ store.name }}</strong>؟</p>
+                    <p class="mb-0">سيتم حذف جميع البيانات المرتبطة بهذا المخزن بما في ذلك المخزون والمنتجات.</p>
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>اسم المخزن</th>
+                            <td>{{ store.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الفرع</th>
+                            <td>{{ store.branch.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>الشركة</th>
+                            <td>{{ store.branch.company.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ store.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>أمين المخزن</th>
+                            <td>{{ store.keeper|default:"-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> تأكيد الحذف
+                        </button>
+                        <a href="{% url 'store_detail' store.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

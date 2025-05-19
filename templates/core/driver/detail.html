@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ driver.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ driver.name }}</h2>
+        <p class="text-muted">سائق</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'driver_edit' driver.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{% url 'driver_delete' driver.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> حذف
+        </a>
+        <a href="{% url 'driver_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">معلومات السائق</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="display-1">
+                        <i class="fas fa-truck text-primary"></i>
+                    </div>
+                </div>
+                
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>الاسم</th>
+                            <td>{{ driver.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف</th>
+                            <td dir="ltr">{{ driver.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ driver.address }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهوية</th>
+                            <td>{{ driver.id_number|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الرخصة</th>
+                            <td>{{ driver.license_number|default:"-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% if driver.notes %}
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">ملاحظات</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ driver.notes|linebreaks }}</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">عمليات التوصيل</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    سيتم عرض عمليات التوصيل هنا عند إضافة فواتير توصيل.
+                </div>
+                <!-- هنا يمكن إضافة جدول عمليات التوصيل لاحقاً -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

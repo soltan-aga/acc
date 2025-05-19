@@ -1,0 +1,119 @@
+<!-- قالب جزئي لفلاتر البحث -->
+<!-- استخدم هذا القالب في صفحات القوائم المختلفة لتوحيد شكل فلاتر البحث -->
+<!--
+طريقة الاستخدام:
+{% include 'partials/_search_filters.html' with
+    filter_title="عنوان الفلتر"
+    filters=filters_list
+    date_filter=True/False
+    search_placeholder="نص البحث..."
+%}
+
+حيث:
+- filter_title: عنوان قسم الفلاتر (اختياري، القيمة الافتراضية: "فلاتر البحث")
+- filters_list: قائمة بالفلاتر المراد عرضها، كل فلتر عبارة عن قاموس يحتوي على:
+  - name: اسم الفلتر (مطلوب)
+  - label: عنوان الفلتر (مطلوب)
+  - type: نوع الفلتر (select أو text أو date، الافتراضي: select)
+  - options: قائمة بخيارات الفلتر (مطلوبة لنوع select)
+  - value: القيمة المحددة حالياً (اختياري)
+  - placeholder: نص توضيحي (اختياري)
+- date_filter: إذا كان True، سيتم عرض فلاتر التاريخ (من تاريخ - إلى تاريخ)
+- search_placeholder: النص التوضيحي لحقل البحث (اختياري)
+-->
+
+<!-- Usar valor predeterminado para filter_title si no se proporciona -->
+
+<div class="card card-outline card-primary mb-3">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-filter"></i> {{ filter_title|default:"فلاتر البحث" }}
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get">
+            <div class="row">
+                {% if filters %}
+                    {% for filter in filters %}
+                        <div class="col-md-3 col-sm-6 mb-2">
+                            <label for="{{ filter.name }}">{{ filter.label }}</label>
+
+                            {% if filter.type == 'text' %}
+                                <input type="text" name="{{ filter.name }}" id="{{ filter.name }}"
+                                       class="form-control"
+                                       placeholder="{{ filter.placeholder|default:'' }}"
+                                       value="{{ filter.value|default:'' }}">
+
+                            {% elif filter.type == 'date' %}
+                                <input type="date" name="{{ filter.name }}" id="{{ filter.name }}"
+                                       class="form-control"
+                                       value="{{ filter.value|default:'' }}">
+
+                            {% else %}
+                                <!-- Default: select -->
+                                <select name="{{ filter.name }}" id="{{ filter.name }}" class="form-control">
+                                    <option value="">{{ filter.placeholder|default:"الكل" }}</option>
+                                    {% for option in filter.options %}
+                                        {% if option.id %}
+                                            <option value="{{ option.id }}"
+                                                {% if filter.value == option.id|stringformat:"i" %}selected{% endif %}>
+                                                {{ option.name }}
+                                            </option>
+                                        {% elif option.0 %}
+                                            <option value="{{ option.0 }}"
+                                                {% if filter.value == option.0 %}selected{% endif %}>
+                                                {{ option.1 }}
+                                            </option>
+                                        {% else %}
+                                            <option value="{{ option }}"
+                                                {% if filter.value == option %}selected{% endif %}>
+                                                {{ option }}
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- حقل البحث العام -->
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <label for="q">بحث</label>
+                    <input type="text" name="q" id="q" class="form-control"
+                           placeholder="{{ search_placeholder|default:'بحث...' }}"
+                           value="{{ search_query|default:'' }}">
+                </div>
+            </div>
+
+            {% if date_filter %}
+            <div class="row">
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <label for="from_date">من تاريخ</label>
+                    <input type="date" name="from_date" id="from_date" class="form-control" value="{{ from_date|default:'' }}">
+                </div>
+                <div class="col-md-3 col-sm-6 mb-2">
+                    <label for="to_date">إلى تاريخ</label>
+                    <input type="date" name="to_date" id="to_date" class="form-control" value="{{ to_date|default:'' }}">
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-12 mb-2 d-flex">
+                    <button type="submit" class="btn btn-primary ml-1">
+                        <i class="fas fa-search"></i> تصفية
+                    </button>
+                    <a href="{{ request.path }}" class="btn btn-secondary ml-1">
+                        <i class="fas fa-redo"></i> إعادة ضبط
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

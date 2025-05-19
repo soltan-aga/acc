@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف منتج | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">حذف منتج</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">تأكيد الحذف</h5>
+                        <p>هل أنت متأكد من حذف المنتج "{{ product.name }}"؟</p>
+                        <hr>
+                        <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المنتج وجميع وحداته وحركاته.</p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">معلومات المنتج</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-striped">
+                                        <tbody>
+                                            <tr>
+                                                <th>اسم المنتج</th>
+                                                <td>{{ product.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>الكود</th>
+                                                <td>{{ product.code|default:"-" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>القسم</th>
+                                                <td>
+                                                    {% if product.category %}
+                                                        {{ product.category.name }}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>الرصيد الحالي</th>
+                                                <td>{{ product.current_balance }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">وحدات المنتج</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if product_units %}
+                                        <ul class="list-group">
+                                            {% for unit in product_units %}
+                                                <li class="list-group-item">
+                                                    {{ unit.unit.name }} ({{ unit.unit.symbol }})
+                                                    {% if unit.is_default_purchase %}
+                                                        <span class="badge bg-primary">وحدة الشراء الافتراضية</span>
+                                                    {% endif %}
+                                                    {% if unit.is_default_sale %}
+                                                        <span class="badge bg-success">وحدة البيع الافتراضية</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-muted">لا توجد وحدات مسجلة لهذا المنتج.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'product_detail' product.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> تأكيد الحذف
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

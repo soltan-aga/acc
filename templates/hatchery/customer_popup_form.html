@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة عميل جديد - نظام إدارة معامل التفريخ</title>
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .popup-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-form">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    إضافة عميل جديد
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="customerForm" method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div id="form-errors" class="alert alert-danger d-none">
+                        <ul id="error-list"></ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        <div class="invalid-feedback" id="name-error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.phone.id_for_label }}" class="form-label">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        <div class="invalid-feedback" id="phone-error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">{{ form.address.label }}</label>
+                        {{ form.address }}
+                        <div class="invalid-feedback" id="address-error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                {{ form.is_active.label }}
+                            </label>
+                        </div>
+                        <div class="invalid-feedback" id="is_active-error"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        <div class="invalid-feedback" id="notes-error"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="window.close()">
+                            <i class="fas fa-times me-1"></i> إلغاء
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('customerForm');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // إعادة تعيين رسائل الخطأ
+                document.querySelectorAll('.invalid-feedback').forEach(el => {
+                    el.textContent = '';
+                    el.style.display = 'none';
+                });
+                
+                document.getElementById('form-errors').classList.add('d-none');
+                document.getElementById('error-list').innerHTML = '';
+                
+                // إرسال البيانات باستخدام AJAX
+                const formData = new FormData(form);
+                
+                fetch('{% url "hatchery:customer_api_create" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // إرسال البيانات إلى النافذة الأصلية
+                        window.opener.postMessage({
+                            type: 'new_customer',
+                            customer: {
+                                id: data.id,
+                                name: data.name
+                            }
+                        }, '*');
+                        
+                        // إغلاق النافذة المنبثقة
+                        window.close();
+                    } else {
+                        // عرض رسائل الخطأ
+                        if (data.errors) {
+                            for (const [field, error] of Object.entries(data.errors)) {
+                                const errorElement = document.getElementById(`${field}-error`);
+                                if (errorElement) {
+                                    errorElement.textContent = error;
+                                    errorElement.style.display = 'block';
+                                } else {
+                                    const errorList = document.getElementById('error-list');
+                                    const li = document.createElement('li');
+                                    li.textContent = `${field}: ${error}`;
+                                    errorList.appendChild(li);
+                                    document.getElementById('form-errors').classList.remove('d-none');
+                                }
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    const errorList = document.getElementById('error-list');
+                    const li = document.createElement('li');
+                    li.textContent = 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.';
+                    errorList.appendChild(li);
+                    document.getElementById('form-errors').classList.remove('d-none');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

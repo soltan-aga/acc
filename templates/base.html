@@ -1,0 +1,371 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}البغدادى{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+
+    <!-- CSS للقوائم المنسدلة المحسنة -->
+    <style>
+        /* تحسين مظهر القوائم المنسدلة */
+        select.enhanced-select {
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            appearance: auto;
+        }
+
+        select.enhanced-select:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        select.enhanced-select option {
+            padding: 8px 12px;
+        }
+
+        select.enhanced-select option:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+        }
+        .card {
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* تحسينات القوائم المنسدلة في التولبار */
+        .dropdown-menu {
+            min-width: 240px;
+            padding: 8px 0;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border: none;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+            margin: 2px 5px;
+        }
+
+        .dropdown-item:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+            transform: translateX(-3px);
+        }
+
+        .dropdown-divider {
+            margin: 6px 0;
+        }
+
+        .nav-link.dropdown-toggle::after {
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        /* تأثير ظهور القائمة عند التحويم */
+        .navbar-nav .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+    </style>
+
+    <style>
+        /* أنماط Formset */
+        .formset-row {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .formset-row:last-child {
+            border-bottom: none;
+        }
+        .delete-row {
+            color: #dc3545;
+            cursor: pointer;
+        }
+
+        /* أنماط إضافية للقوائم المنسدلة */
+        .product-select, .unit-select {
+            font-weight: 500;
+        }
+
+        /* تحسين مظهر القوائم المنسدلة في الجداول */
+        table select.form-select {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        /* تصغير حجم الأزرار وجعلها مسطحة */
+        .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: 3px;
+            box-shadow: none;
+            transition: all 0.2s;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        /* تحسين مظهر الأزرار في الجداول */
+        .table .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+        }
+
+        /* تحسين مظهر أزرار الإضافة */
+        .btn-add {
+            border-radius: 3px;
+            font-weight: 500;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">H</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}"><i class="fas fa-home"></i> الرئيسية</a>
+                    </li>
+
+
+                        <!-- قائمة الإدارة (تم نقلها إلى قائمة الإعدادات) -->
+                        {% if user.profile.role == 'admin' or user.profile.role == 'manager' and False %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    الإدارة
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'user_list' %}">إدارة المستخدمين</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'system_settings' %}">إعدادات النظام</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'admin:index' %}">لوحة التحكم</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+
+                        <!-- قائمة الشركة والفروع -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="companyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-building"></i> الشركة والفروع
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="companyDropdown">
+                                <li><a class="dropdown-item" href="{% url 'farm_home' %}"><i class="fas fa-building"></i> المزارع</a></li>
+                                <li><a class="dropdown-item" href="{% url 'company_list' %}"><i class="fas fa-building"></i> الشركات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'branch_list' %}"><i class="fas fa-code-branch"></i> الفروع</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store_list' %}"><i class="fas fa-warehouse"></i> المخازن</a></li>
+                                <li><a class="dropdown-item" href="{% url 'safe_list' %}"><i class="fas fa-cash-register"></i> الخزن</a></li>
+                                <li><a class="dropdown-item" href="{% url 'contact_list' %}"><i class="fas fa-address-book"></i> العملاء والموردين</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- قائمة المنتجات -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="productsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-box"></i> المنتجات
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="productsDropdown">
+                                <li><a class="dropdown-item" href="{% url 'category_list' %}"><i class="fas fa-tags"></i> أقسام المنتجات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'product_list' %}"><i class="fas fa-boxes"></i> المنتجات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'unit_list' %}"><i class="fas fa-ruler"></i> وحدات القياس</a></li>
+                                <li><a class="dropdown-item" href="{% url 'product_inventory' %}"><i class="fas fa-clipboard-list"></i> جرد المخزون</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <!-- أذونات المخزن -->
+                                <li><a class="dropdown-item" href="{% url 'store_permit_list' %}"><i class="fas fa-clipboard-check"></i> أذونات المخزن</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store_permit_add_issue' %}"><i class="fas fa-arrow-circle-up"></i> صرف المنتجات من المخزن</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store_permit_add_receive' %}"><i class="fas fa-arrow-circle-down"></i> استلام المنتجات في المخزن</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- قائمة الفواتير -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="invoicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-file-invoice"></i> الفواتير
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="invoicesDropdown">
+                                <li><a class="dropdown-item" href="{% url 'invoice_list' %}"><i class="fas fa-list"></i> جميع الفواتير</a></li>
+                                <li><a class="dropdown-item" href="{% url 'sale_invoice_list' %}"><i class="fas fa-file-invoice-dollar"></i> فواتير البيع</a></li>
+                                <li><a class="dropdown-item" href="{% url 'purchase_invoice_list' %}"><i class="fas fa-shopping-cart"></i> فواتير الشراء</a></li>
+                                <li><a class="dropdown-item" href="{% url 'sale_return_invoice_list' %}"><i class="fas fa-undo"></i> مرتجعات البيع</a></li>
+                                <li><a class="dropdown-item" href="{% url 'purchase_return_invoice_list' %}"><i class="fas fa-undo-alt"></i> مرتجعات الشراء</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'payment_list' %}"><i class="fas fa-money-bill-wave"></i> التحصيلات والمدفوعات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'receipt_list' %}"><i class="fas fa-hand-holding-usd"></i> التحصيلات من العملاء</a></li>
+                                <li><a class="dropdown-item" href="{% url 'payment_to_supplier_list' %}"><i class="fas fa-money-check-alt"></i> المدفوعات للموردين</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- قائمة المالية -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="financeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-line"></i> المالية
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="financeDropdown">
+                                <!-- الأقسام والتصنيفات -->
+                                <li><a class="dropdown-item" href="{% url 'income_category_list' %}"><i class="fas fa-tags"></i> أقسام الإيرادات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'expense_category_list' %}"><i class="fas fa-tags"></i> أقسام المصروفات</a></li>
+                                <li><hr class="dropdown-divider"></li>
+
+                                <!-- العمليات المالية الرئيسية -->
+                                <li><a class="dropdown-item" href="{% url 'income_list' %}"><i class="fas fa-plus-circle"></i> الإيرادات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'expense_list' %}"><i class="fas fa-minus-circle"></i> المصروفات</a></li>
+                                <li><a class="dropdown-item" href="{% url 'safe_deposit_list' %}"><i class="fas fa-arrow-circle-down"></i> الإيداع في الخزنة</a></li>
+                                <li><a class="dropdown-item" href="{% url 'safe_withdrawal_list' %}"><i class="fas fa-arrow-circle-up"></i> السحب من الخزنة</a></li>
+                                <li><hr class="dropdown-divider"></li>
+
+                                <!-- التقارير المالية -->
+                                <li><a class="dropdown-item" href="{% url 'financial_transactions_report' %}"><i class="fas fa-file-invoice-dollar"></i> تقرير الحركات المالية</a></li>
+                                <li><a class="dropdown-item" href="{% url 'income_expense_report' %}"><i class="fas fa-chart-pie"></i> تقرير الإيرادات والمصروفات</a></li>
+                                <li><hr class="dropdown-divider"></li>
+
+                                <!-- حركات المخزون -->
+                                <li><a class="dropdown-item" href="{% url 'product_transaction_list' %}"><i class="fas fa-dolly"></i> حركات المخزون</a></li>
+                                <li><a class="dropdown-item" href="{% url 'product_inventory' %}"><i class="fas fa-clipboard-list"></i> تقارير المخزون</a></li>
+                                <li><a class="dropdown-item" href="{% url 'store_permits_report' %}"><i class="fas fa-clipboard-check"></i> تقرير الأذونات المخزنية</a></li>
+                                <li><hr class="dropdown-divider"></li>
+
+
+                            </ul>
+                        </li>
+
+                        <!-- قائمة شؤون الموظفين -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="employeesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users"></i> شؤون الموظفين
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="employeesDropdown">
+                                <li><a class="dropdown-item" href="{% url 'employees:employee_list' %}"><i class="fas fa-user-tie"></i> الموظفين</a></li>
+                                <li><a class="dropdown-item" href="{% url 'employees:attendance_daily' %}"><i class="fas fa-calendar-day"></i> الحضور اليومي</a></li>
+                                <li><a class="dropdown-item" href="{% url 'employees:attendance_monthly' %}"><i class="fas fa-calendar-alt"></i> الحضور الشهري</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'employees:loan_list' %}"><i class="fas fa-hand-holding-usd"></i> السلف</a></li>
+                                <li><a class="dropdown-item" href="{% url 'employees:salary_list' %}"><i class="fas fa-money-bill-wave"></i> المرتبات</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'employees:report_attendance_monthly' %}"><i class="fas fa-chart-bar"></i> تقارير الحضور</a></li>
+                            </ul>
+                        </li>
+
+                        {% if user.is_authenticated %}
+                        <!-- قائمة الإعدادات -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cog"></i> الإعدادات
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
+                                <li><a class="dropdown-item" href="{% url 'system_settings' %}"><i class="fas fa-sliders-h"></i> إعدادات النظام</a></li>
+                                <li><a class="dropdown-item" href="{% url 'account_settings' %}"><i class="fas fa-user-cog"></i> إعدادات الحساب</a></li>
+                                {% if user.profile.role == 'admin' or user.profile.role == 'manager' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'user_list' %}"><i class="fas fa-users-cog"></i> إدارة المستخدمين</a></li>
+                                <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                                {% endif %}
+                            </ul>
+                        </li>
+
+                        <!-- الإشعارات -->
+                        <li class="nav-item">
+                            <a class="nav-link position-relative {% if 'notifications' in request.path %}active{% endif %}" href="{% url 'notifications' %}">
+                                <i class="fas fa-bell"></i> الإشعارات
+                                <span id="notificationCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" {% if not unread_notifications_count %}style="display: none;"{% endif %}>
+                                    {{ unread_notifications_count|default:"0" }}
+                                </span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                مرحباً {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user"></i> الملف الشخصي</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'login' in request.path %}active{% endif %}" href="{% url 'login' %}">تسجيل الدخول</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'register' in request.path %}active{% endif %}" href="{% url 'register' %}">إنشاء حساب</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="bg-light py-3 mt-4">
+        <div class="container text-center">
+            <p class="mb-0">جميع الحقوق محفوظة &copy; {% now "Y" %}</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // سكريبت لتحسين القوائم المنسدلة
+        $(document).ready(function() {
+            // إضافة فئة enhanced-select إلى القوائم المنسدلة
+            $('.product-select, .unit-select, #contact').addClass('enhanced-select');
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

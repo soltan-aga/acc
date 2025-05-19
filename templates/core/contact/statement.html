@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}كشف حساب {{ contact.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">كشف حساب {{ contact.name }}</h2>
+        <p class="text-muted">
+            <span class="badge {% if contact.contact_type == 'customer' %}bg-primary{% else %}bg-success{% endif %}">
+                {{ contact.get_contact_type_display }}
+            </span>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'contact_detail' contact.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> العودة للتفاصيل
+        </a>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> طباعة
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">ملخص الحساب</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">الرصيد الافتتاحي</h6>
+                                <h4 class="card-title">{{ initial_balance }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">الرصيد الحالي</h6>
+                                <h4 class="card-title {% if current_balance < 0 %}text-danger{% elif current_balance > 0 %}text-success{% endif %}">
+                                    {{ current_balance }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">حد الائتمان</h6>
+                                <h4 class="card-title">{{ contact.credit_limit }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">حركات الحساب</h5>
+    </div>
+    <div class="card-body">
+        <!-- فلاتر البحث -->
+        <form method="get" class="mb-4">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">من تاريخ</label>
+                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">إلى تاريخ</label>
+                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="type" class="form-label">نوع العملية</label>
+                    <select name="type" id="type" class="form-select">
+                        <option value="">-- جميع العمليات --</option>
+                        {% for type_value, type_name in transaction_types %}
+                        <option value="{{ type_value }}" {% if transaction_type == type_value %}selected{% endif %}>
+                            {{ type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="q" class="form-label">بحث</label>
+                    <input type="text" name="q" id="q" class="form-control" placeholder="رقم الفاتورة، الوصف..." value="{{ query }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> بحث
+                        </button>
+                        <a href="{% url 'contact_statement' contact.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> إلغاء
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- جدول الحركات -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>نوع العملية</th>
+                        <th>الوصف</th>
+                        <th>المرجع</th>
+                        <th>مدين</th>
+                        <th>دائن</th>
+                        <th>الرصيد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-light">
+                        <td colspan="4" class="fw-bold">الرصيد الافتتاحي</td>
+                        <td></td>
+                        <td></td>
+                        <td class="fw-bold">{{ initial_balance }}</td>
+                    </tr>
+                    {% for item in transactions %}
+                    <tr>
+                        <td>{{ item.transaction.date|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <span class="badge
+                                {% if item.transaction.transaction_type == 'sale_invoice' %}bg-primary
+                                {% elif item.transaction.transaction_type == 'purchase_invoice' %}bg-success
+                                {% elif item.transaction.transaction_type == 'sale_return_invoice' %}bg-warning
+                                {% elif item.transaction.transaction_type == 'purchase_return_invoice' %}bg-info
+                                {% elif item.transaction.transaction_type == 'collection' %}bg-danger
+                                {% elif item.transaction.transaction_type == 'payment' %}bg-secondary
+                                {% endif %}">
+                                {{ item.transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ item.transaction.description }}</td>
+                        <td>
+                            {% if item.transaction.invoice %}
+                            <a href="{% url 'invoice_detail' item.transaction.invoice.id %}">
+                                {{ item.transaction.invoice.number }}
+                            </a>
+                            {% else %}
+                            {{ item.transaction.reference_number|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if item.debit_amount > 0 %}
+                            {{ item.debit_amount }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if item.credit_amount > 0 %}
+                            {{ item.credit_amount }}
+                            {% endif %}
+                        </td>
+                        <td class="text-end {% if item.running_balance < 0 %}text-danger{% elif item.running_balance > 0 %}text-success{% endif %}">
+                            {{ item.running_balance }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">لا توجد حركات في الحساب</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-dark fw-bold">
+                        <th colspan="4" class="text-end">الإجمالي</th>
+                        <th class="text-end">
+                            {% with total_debit=0 %}
+                                {% for item in transactions %}
+                                    {% with total_debit=total_debit|add:item.debit_amount %}{% endwith %}
+                                {% endfor %}
+                                {{ total_debit }}
+                            {% endwith %}
+                        </th>
+                        <th class="text-end">
+                            {% with total_credit=0 %}
+                                {% for item in transactions %}
+                                    {% with total_credit=total_credit|add:item.credit_amount %}{% endwith %}
+                                {% endfor %}
+                                {{ total_credit }}
+                            {% endwith %}
+                        </th>
+                        <th class="text-end {% if current_balance < 0 %}text-danger{% elif current_balance > 0 %}text-success{% endif %}">
+                            {{ current_balance }}
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .btn, form, .card-header {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-body {
+            padding: 0 !important;
+        }
+        body {
+            font-size: 12pt;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .badge {
+            border: 1px solid #000 !important;
+            color: #000 !important;
+            background-color: transparent !important;
+        }
+
+        /* تنسيقات الجدول للطباعة */
+        .table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+
+        .table thead th {
+            background-color: #f2f2f2 !important;
+            color: #000 !important;
+            font-weight: bold !important;
+        }
+
+        .table-dark {
+            background-color: #f2f2f2 !important;
+            color: #000 !important;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        .text-success {
+            color: #28a745 !important;
+        }
+    }
+</style>
+{% endblock %}

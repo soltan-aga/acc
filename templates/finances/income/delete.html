@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}حذف إيراد{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">حذف إيراد</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">تأكيد الحذف</h5>
+                        <p>هل أنت متأكد من حذف الإيراد رقم "{{ income.number }}"؟</p>
+                        <hr>
+                        <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6>بيانات الإيراد:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>الرقم:</strong> {{ income.number }}</li>
+                            <li class="list-group-item"><strong>التاريخ:</strong> {{ income.date|date:"Y-m-d" }}</li>
+                            <li class="list-group-item"><strong>القسم:</strong> {{ income.category.name }}</li>
+                            <li class="list-group-item"><strong>الخزنة:</strong> {{ income.safe.name }}</li>
+                            <li class="list-group-item"><strong>المبلغ:</strong> {{ income.amount }}</li>
+                            <li class="list-group-item"><strong>الدافع:</strong> {{ income.payer }}</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'income_detail' income.id %}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

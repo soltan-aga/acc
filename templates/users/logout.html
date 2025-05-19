@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}تم تسجيل الخروج | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">تم تسجيل الخروج بنجاح</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <p>لقد تم تسجيل خروجك بنجاح من النظام.</p>
+                </div>
+                
+                <p>شكرًا لاستخدامك نظام إدارة المخازن والمحاسبة.</p>
+            </div>
+            <div class="card-footer">
+                <div class="text-center">
+                    <a href="{% url 'login' %}" class="btn btn-primary">تسجيل الدخول مرة أخرى</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,419 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}التقرير اليومي - {{ report_date|date:"Y-m-d" }} - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body {
+            font-size: 12px;
+        }
+        .navbar, .footer, .btn, form, .dropdown-toggle, .btn-group {
+            display: none !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+            border-bottom: 2px solid #dee2e6 !important;
+        }
+        .table {
+            font-size: 10px;
+        }
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>التقرير اليومي - {{ report_date|date:"Y-m-d" }}</h4>
+                <div class="d-flex">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download me-1"></i> تصدير
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=excel"><i class="fas fa-file-excel me-1 text-success"></i> Excel</a></li>
+                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=pdf"><i class="fas fa-file-pdf me-1 text-danger"></i> PDF</a></li>
+                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=print"><i class="fas fa-print me-1 text-primary"></i> صفحة طباعة</a></li>
+                        </ul>
+                    </div>
+                    
+                    <form method="get" class="d-flex">
+                        <input type="date" name="date" value="{{ report_date|date:'Y-m-d' }}" class="form-control me-2">
+                        <button type="submit" class="btn btn-light">عرض</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- ملخص الإحصائيات -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">ملخص الإحصائيات</h5>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الدفعات الواردة</h5>
+                                        <h3>{{ total_entries_count }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الدفعات المسكنة</h5>
+                                        <h3>{{ total_incubations_count }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الدفعات الخارجة</h5>
+                                        <h3>{{ total_hatchings_count.total_chicks|default:"0" }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-warning text-dark">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الكتاكيت الموزعة</h5>
+                                        <h3>{{ total_distributed_count }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-danger text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الكتاكيت الفرزة</h5>
+                                        <h3>{{ total_hatchings_count.total_culled|default:"0" }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-dark text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">المعدم</h5>
+                                        <h3>{{ total_hatchings_count.total_wasted|default:"0" }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-secondary text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">الفرزة المباعة</h5>
+                                        <h3>{{ total_culled_sales_count }}</h3>
+                                        <p class="mb-0">كتكوت</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-dark text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">إيرادات الفرزة</h5>
+                                        <h3>{{ total_culled_sales_amount }}</h3>
+                                        <p class="mb-0">جنيه</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">إيرادات التوزيع</h5>
+                                        <h3>{{ total_distributions_amount }}</h3>
+                                        <p class="mb-0">جنيه</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الدفعات الواردة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">الدفعات الواردة المسجلة اليوم</h5>
+                        {% if today_entries %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الدفعة</th>
+                                        <th>تاريخ الدخول</th>
+                                        <th>الكمية</th>
+                                        <th>اسم السائق</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in today_entries %}
+                                    <tr>
+                                        <td>{{ entry.batch_name }}</td>
+                                        <td>{{ entry.date }}</td>
+                                        <td>{{ entry.quantity }}</td>
+                                        <td>{{ entry.driver|default:"-" }}</td>
+                                        <td>{{ entry.notes|default:"-"|truncatechars:30 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد دفعات واردة مسجلة اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- الدفعات المسكنة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">الدفعات التي تم تسكينها اليوم</h5>
+                        {% if today_incubations %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الدفعة</th>
+                                        <th>تاريخ التسكين</th>
+                                        <th>كمية التسكين</th>
+                                        <th>المعدم</th>
+                                        <th>تاريخ الخروج المتوقع</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for incubation in today_incubations %}
+                                    <tr>
+                                        <td>{{ incubation.batch_entry.batch_name }}</td>
+                                        <td>{{ incubation.incubation_date }}</td>
+                                        <td>{{ incubation.incubation_quantity }}</td>
+                                        <td>{{ incubation.damaged_quantity }}</td>
+                                        <td>{{ incubation.expected_hatch_date }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد دفعات تم تسكينها اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- الدفعات الخارجة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">الدفعات التي خرجت اليوم</h5>
+                        {% if today_hatchings %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الدفعة</th>
+                                        <th>تاريخ الخروج</th>
+                                        <th>الكتاكيت</th>
+                                        <th>الفرزة</th>
+                                        <th>الفاطس</th>
+                                        <th>المعدم</th>
+                                        <th>نسبة الإخصاب</th>
+                                        <th>نسبة الفقس</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for hatching in today_hatchings %}
+                                    <tr>
+                                        <td>{{ hatching.incubation.batch_entry.batch_name }}</td>
+                                        <td>{{ hatching.hatch_date }}</td>
+                                        <td>{{ hatching.chicks_count }}</td>
+                                        <td>{{ hatching.culled_count }}</td>
+                                        <td>{{ hatching.dead_count }}</td>
+                                        <td>{{ hatching.wasted_count }}</td>
+                                        <td>{{ hatching.fertility_rate }}%</td>
+                                        <td>{{ hatching.hatch_rate }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد دفعات خرجت اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- توزيعات الدفعات -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">توزيعات الدفعات اليوم</h5>
+                        {% if today_distributions %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الدفعة</th>
+                                        <th>تاريخ التوزيع</th>
+                                        <th>الكتاكيت الموزعة</th>
+                                        <th>عدد العملاء</th>
+                                        <th>المبلغ المدفوع</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for distribution in today_distributions %}
+                                    <tr>
+                                        <td>{{ distribution.hatching.incubation.batch_entry.batch_name }}</td>
+                                        <td>{{ distribution.distribution_date }}</td>
+                                        <td>{{ distribution.total_distributed_count }}</td>
+                                        <td>{{ distribution.distribution_items.count }}</td>
+                                        <td>{{ distribution.total_paid_amount }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد توزيعات دفعات اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- المطهرات الواردة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">المطهرات الواردة اليوم</h5>
+                        {% if today_received_disinfectants %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المطهر</th>
+                                        <th>التصنيف</th>
+                                        <th>الكمية</th>
+                                        <th>وحدة القياس</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in today_received_disinfectants %}
+                                    <tr>
+                                        <td>{{ transaction.disinfectant.name }}</td>
+                                        <td>{{ transaction.disinfectant.category.name }}</td>
+                                        <td>{{ transaction.quantity }}</td>
+                                        <td>{{ transaction.disinfectant.unit }}</td>
+                                        <td>{{ transaction.notes|default:"-"|truncatechars:30 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد مطهرات واردة اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- المطهرات المنصرفة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">المطهرات المنصرفة اليوم</h5>
+                        {% if today_dispensed_disinfectants %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>المطهر</th>
+                                        <th>التصنيف</th>
+                                        <th>الكمية</th>
+                                        <th>وحدة القياس</th>
+                                        <th>ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in today_dispensed_disinfectants %}
+                                    <tr>
+                                        <td>{{ transaction.disinfectant.name }}</td>
+                                        <td>{{ transaction.disinfectant.category.name }}</td>
+                                        <td>{{ transaction.quantity }}</td>
+                                        <td>{{ transaction.disinfectant.unit }}</td>
+                                        <td>{{ transaction.notes|default:"-"|truncatechars:30 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد مطهرات منصرفة اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="page-break"></div>
+                <!-- مبيعات الكتاكيت الفرزة -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h5 class="card-title mb-3">مبيعات الكتاكيت الفرزة اليوم</h5>
+                        {% if today_culled_sales %}
+                        <div class="table-container">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>العميل</th>
+                                        <th>الدفعة</th>
+                                        <th>الكمية</th>
+                                        <th>السعر</th>
+                                        <th>الإجمالي</th>
+                                        <th>المدفوع</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for sale in today_culled_sales %}
+                                    <tr>
+                                        <td>{{ sale.customer.name }}</td>
+                                        <td>{{ sale.hatching.incubation.batch_entry.batch_name }}</td>
+                                        <td>{{ sale.quantity }}</td>
+                                        <td>{{ sale.price_per_unit }}</td>
+                                        <td>{{ sale.total_amount }}</td>
+                                        <td>{{ sale.paid_amount }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center">لا توجد مبيعات كتاكيت فرزة اليوم</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

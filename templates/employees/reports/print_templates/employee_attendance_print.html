@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير حضور موظف</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            font-size: 12pt;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .report-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .report-subtitle {
+            font-size: 16pt;
+            margin-bottom: 15px;
+        }
+
+        .employee-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .employee-info-column {
+            width: 48%;
+        }
+
+        .info-row {
+            margin-bottom: 5px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 120px;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .stats-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 0 10px;
+            border: 1px solid #000;
+        }
+
+        .stats-present {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .stats-absent {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .stats-excused {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th, table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10pt;
+        }
+
+        .bg-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .bg-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .bg-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="report-header">
+            <h1 class="report-title">تقرير حضور موظف</h1>
+            <h2 class="report-subtitle">{{ employee.name }} - {{ month_name }} {{ year }}</h2>
+        </div>
+
+        <div class="employee-info">
+            <div class="employee-info-column">
+                <div class="info-row">
+                    <span class="info-label">الاسم:</span>
+                    <span>{{ employee.name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">المسمى الوظيفي:</span>
+                    <span>{{ employee.job_title|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">القسم:</span>
+                    <span>{{ employee.department|default:"-" }}</span>
+                </div>
+            </div>
+            <div class="employee-info-column">
+                <div class="info-row">
+                    <span class="info-label">الرقم القومي:</span>
+                    <span>{{ employee.national_id|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الهاتف:</span>
+                    <span>{{ employee.phone|default:"-" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ التعيين:</span>
+                    <span>{{ employee.hire_date|date:"Y-m-d" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div>
+                <span class="stats-badge stats-present">أيام الحضور: {{ present_count }}</span>
+            </div>
+            <div>
+                <span class="stats-badge stats-absent">أيام الغياب: {{ absent_count }}</span>
+            </div>
+            <div>
+                <span class="stats-badge stats-excused">أيام الغياب بعذر: {{ excused_count }}</span>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الحالة</th>
+                    <th>وقت الحضور</th>
+                    <th>وقت الانصراف</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_records %}
+                <tr>
+                    <td>{{ record.date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if record.status == 'present' %}
+                        <span class="badge bg-success">حاضر</span>
+                        {% elif record.status == 'absent' %}
+                        <span class="badge bg-danger">غائب</span>
+                        {% elif record.status == 'excused' %}
+                        <span class="badge bg-warning">غائب بعذر</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.check_in|time|default:"-" }}</td>
+                    <td>{{ record.check_out|time|default:"-" }}</td>
+                    <td>{{ record.notes|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">لا يوجد سجلات حضور لهذا الشهر</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="no-print">
+            <button onclick="window.print()" class="btn btn-primary">طباعة</button>
+            <button onclick="exportToPDF()" class="btn btn-danger">تصدير PDF</button>
+            <button onclick="exportToExcel()" class="btn btn-success">تصدير إكسل</button>
+            <button onclick="window.close()" class="btn btn-secondary">إغلاق</button>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+        <script>
+            // تصدير إلى PDF
+            function exportToPDF() {
+                const { jsPDF } = window.jspdf;
+
+                // إخفاء أزرار الطباعة والتصدير
+                const printButtons = document.querySelector('.no-print');
+                printButtons.style.display = 'none';
+
+                // إنشاء PDF
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+
+                // تحويل المحتوى إلى صورة
+                html2canvas(document.querySelector('.container'), {
+                    scale: 1,
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    // إضافة الصورة إلى PDF
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = doc.internal.pageSize.getWidth();
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                    doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+                    // تنزيل الملف
+                    doc.save('تقرير_حضور_{{ employee.name }}_{{ month_name }}_{{ year }}.pdf');
+
+                    // إظهار أزرار الطباعة والتصدير مرة أخرى
+                    printButtons.style.display = 'block';
+                });
+            }
+
+            // تصدير إلى إكسل
+            function exportToExcel() {
+                // إنشاء مصفوفة لبيانات الإكسل
+                const data = [];
+
+                // إضافة عنوان التقرير
+                data.push(['تقرير حضور موظف - {{ employee.name }} - {{ month_name }} {{ year }}']);
+                data.push([]);
+
+                // إضافة بيانات الموظف
+                data.push(['الاسم', '{{ employee.name }}']);
+                data.push(['المسمى الوظيفي', '{{ employee.job_title|default:"-" }}']);
+                data.push(['القسم', '{{ employee.department|default:"-" }}']);
+                data.push(['الرقم القومي', '{{ employee.national_id|default:"-" }}']);
+                data.push(['رقم الهاتف', '{{ employee.phone|default:"-" }}']);
+                data.push(['تاريخ التعيين', '{{ employee.hire_date|date:"Y-m-d" }}']);
+                data.push([]);
+
+                // إضافة إحصائيات الحضور
+                data.push(['أيام الحضور', 'أيام الغياب', 'أيام الغياب بعذر']);
+                data.push(['{{ present_count }}', '{{ absent_count }}', '{{ excused_count }}']);
+                data.push([]);
+
+                // الحصول على جدول البيانات
+                const table = document.querySelector('table');
+                const rows = table.querySelectorAll('tr');
+
+                // إضافة رأس الجدول
+                const headerRow = [];
+                const headerCells = rows[0].querySelectorAll('th');
+                headerCells.forEach(cell => {
+                    headerRow.push(cell.textContent.trim());
+                });
+                data.push(headerRow);
+
+                // إضافة بيانات الجدول
+                for (let i = 1; i < rows.length; i++) {
+                    const rowData = [];
+                    const cells = rows[i].querySelectorAll('td');
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent.trim());
+                    });
+                    data.push(rowData);
+                }
+
+                // إنشاء ورقة عمل
+                const ws = XLSX.utils.aoa_to_sheet(data);
+
+                // تعيين اتجاه من اليمين إلى اليسار
+                ws['!dir'] = 'rtl';
+
+                // إنشاء مصنف عمل
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'تقرير الحضور');
+
+                // تنزيل الملف
+                XLSX.writeFile(wb, 'تقرير_حضور_{{ employee.name }}_{{ month_name }}_{{ year }}.xlsx');
+            }
+        </script>
+    </div>
+</body>
+</html>

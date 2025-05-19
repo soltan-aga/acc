@@ -1,0 +1,170 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.id %}
+    تعديل عملية بيع - {{ form.instance.customer }}
+    {% else %}
+    تسجيل عملية بيع جديدة
+    {% endif %}
+    - نظام إدارة معامل التفريخ
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    {% if form.instance.id %}
+                    تعديل عملية بيع - {{ form.instance.customer }}
+                    {% else %}
+                    تسجيل عملية بيع جديدة
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="{{ form.customer.id_for_label }}" class="form-label fs-5 fw-bold">{{ form.customer.label }}</label>
+                        {{ form.customer }}
+                        {% if form.customer.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.customer.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="mt-2">
+                            <a href="{% url 'hatchery:customer_list' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus-circle"></i> إضافة عميل جديد
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.hatching.id_for_label }}" class="form-label">{{ form.hatching.label }}</label>
+                        {{ form.hatching }}
+                        {% if form.hatching.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.hatching.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.invoice_date.id_for_label }}" class="form-label">{{ form.invoice_date.label }}</label>
+                        {{ form.invoice_date }}
+                        {% if form.invoice_date.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.invoice_date.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label">{{ form.quantity.label }}</label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.quantity.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.price_per_unit.id_for_label }}" class="form-label">{{ form.price_per_unit.label }}</label>
+                        {{ form.price_per_unit }}
+                        {% if form.price_per_unit.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.price_per_unit.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">الإجمالي</label>
+                        <div class="form-control" id="total-amount">0.00</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.paid_amount.id_for_label }}" class="form-label">{{ form.paid_amount.label }}</label>
+                        {{ form.paid_amount }}
+                        {% if form.paid_amount.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.paid_amount.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.notes.errors %}
+                            {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'hatchery:culled_sale_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right me-1"></i> رجوع
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> حفظ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const quantityInput = document.getElementById('id_quantity');
+        const priceInput = document.getElementById('id_price_per_unit');
+        const totalDisplay = document.getElementById('total-amount');
+
+        function calculateTotal() {
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = quantity * price;
+            totalDisplay.textContent = total.toFixed(2);
+        }
+
+        // حساب الإجمالي عند تحميل الصفحة
+        calculateTotal();
+
+        // حساب الإجمالي عند تغيير الكمية أو السعر
+        quantityInput.addEventListener('input', calculateTotal);
+        priceInput.addEventListener('input', calculateTotal);
+    });
+</script>
+{% endblock %}

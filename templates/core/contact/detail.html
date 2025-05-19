@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ contact.name }} | نظام إدارة المخازن والمحاسبة{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h2 class="mb-0">{{ contact.name }}</h2>
+        <p class="text-muted">
+            <span class="badge {% if contact.contact_type == 'customer' %}bg-primary{% else %}bg-success{% endif %}">
+                {{ contact.get_contact_type_display }}
+            </span>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'contact_edit' contact.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> تعديل
+        </a>
+        <a href="{% url 'contact_delete' contact.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> حذف
+        </a>
+        {% if contact.contact_type == 'customer' %}
+            <a href="{% url 'customer_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        {% else %}
+            <a href="{% url 'supplier_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> العودة للقائمة
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow mb-4">
+            <div class="card-header {% if contact.contact_type == 'customer' %}bg-primary{% else %}bg-success{% endif %} text-white">
+                <h5 class="card-title mb-0">معلومات {% if contact.contact_type == 'customer' %}العميل{% else %}المورد{% endif %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="display-1">
+                        {% if contact.contact_type == 'customer' %}
+                            <i class="fas fa-user text-primary"></i>
+                        {% else %}
+                            <i class="fas fa-truck-loading text-success"></i>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <table class="table table-striped">
+                    <tbody>
+                        <tr>
+                            <th>الاسم</th>
+                            <td>{{ contact.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>النوع</th>
+                            <td>{{ contact.get_contact_type_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>رقم الهاتف</th>
+                            <td dir="ltr">{{ contact.phone|default:"-" }}</td>
+                        </tr>
+                        {% if contact.alternative_phone %}
+                            <tr>
+                                <th>رقم هاتف بديل</th>
+                                <td dir="ltr">{{ contact.alternative_phone }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th>البريد الإلكتروني</th>
+                            <td dir="ltr">{{ contact.email|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>العنوان</th>
+                            <td>{{ contact.address|default:"-" }}</td>
+                        </tr>
+                        {% if contact.tax_number %}
+                            <tr>
+                                <th>الرقم الضريبي</th>
+                                <td>{{ contact.tax_number }}</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if contact.notes %}
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">ملاحظات</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ contact.notes|linebreaks }}</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">الحساب المالي</h5>
+                <a href="{% url 'contact_statement' contact.pk %}" class="btn btn-sm btn-dark">
+                    <i class="fas fa-file-alt"></i> كشف الحساب
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">الرصيد الافتتاحي</h6>
+                                <p class="card-text fs-4">{{ contact.initial_balance }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card {% if contact.current_balance < 0 %}bg-danger text-white{% elif contact.current_balance > 0 %}bg-success text-white{% else %}bg-light{% endif %}">
+                            <div class="card-body">
+                                <h6 class="card-title">الرصيد الحالي</h6>
+                                <p class="card-text fs-4">{{ contact.current_balance }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">حد الائتمان</h6>
+                                <p class="card-text fs-4">{{ contact.credit_limit }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header {% if contact.contact_type == 'customer' %}bg-primary{% else %}bg-success{% endif %} text-white">
+                <h5 class="card-title mb-0">
+                    {% if contact.contact_type == 'customer' %}
+                        المبيعات
+                    {% else %}
+                        المشتريات
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    {% if contact.contact_type == 'customer' %}
+                        سيتم عرض فواتير المبيعات هنا عند إضافة فواتير للعميل.
+                    {% else %}
+                        سيتم عرض فواتير المشتريات هنا عند إضافة فواتير للمورد.
+                    {% endif %}
+                </div>
+                <!-- هنا يمكن إضافة جدول الفواتير لاحقاً -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

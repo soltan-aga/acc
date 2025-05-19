@@ -1,0 +1,1066 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الحركات المالية</title>
+    <!-- إضافة مكتبة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Regular.ttf" %}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Tajawal';
+            src: url('{% static "fonts/Tajawal-Bold.ttf" %}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 0;
+            orphans: 4; /* عدد الأسطر الأدنى في بداية الصفحة */
+            widows: 4; /* عدد الأسطر الأدنى في نهاية الصفحة */
+        }
+
+        body {
+            font-family: 'Tajawal', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: #333;
+            font-size: 11pt;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0.2cm;
+        }
+
+        .header {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-bottom: 2px solid #3f51b5;
+            max-height: 15vh; /* تقليل ارتفاع الهيدر ليكون حوالي 15% من ارتفاع الصفحة */
+            background-color: #f5f7ff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .company-info {
+            text-align: right;
+            flex: 1;
+        }
+
+        .logo-container {
+            text-align: left;
+            flex: 0 0 auto;
+        }
+
+        .company-logo {
+            max-height: 60px;
+            max-width: 150px;
+        }
+
+        .company-name {
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 3px 0;
+        }
+
+        .company-details {
+            font-size: 8pt;
+            color: #555;
+        }
+
+        .report-title {
+            font-size: 17pt;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .report-date {
+            font-size: 11pt;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .report-date span {
+            display: inline-block;
+            direction: ltr;
+            font-weight: bold;
+            background-color: #f0f8ff;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin: 0 3px;
+        }
+
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            text-align: center;
+            max-height: 8vh;
+            page-break-inside: avoid; /* منع انقسام ملخص الإجماليات بين الصفحات */
+        }
+
+        .summary-box {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            width: 30%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .summary-box.income {
+            background-color: #c8e6c9;
+            border: 1px solid #4caf50;
+        }
+
+        .summary-box.expense {
+            background-color: #ffcdd2;
+            border: 1px solid #f44336;
+        }
+
+        .summary-box.balance {
+            background-color: #bbdefb;
+            border: 1px solid #2196f3;
+            color: #0d47a1;
+            display: block !important; /* ضمان ظهور مربع رصيد الخزنة */
+        }
+
+        .summary-title {
+            font-weight: bold;
+            margin-bottom: 2px;
+            font-size: 11pt;
+        }
+
+        .summary-amount {
+            font-size: 13pt;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border: 2px solid #4267B2; /* لون الفيسبوك */
+            table-layout: fixed; /* تثبيت عرض الأعمدة */
+        }
+
+        table, th, td {
+            border: 1px solid #bbb;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: center;
+            font-size: 9pt;
+            white-space: nowrap; /* منع انقسام النص إلى أسطر */
+            overflow: visible; /* إظهار النص بالكامل */
+        }
+
+        /* السماح بانقسام النص في عمود الوصف فقط */
+        td:nth-child(7) {
+            white-space: normal;
+        }
+
+        /* تنسيق الصفوف بألوان متناوبة للقراءة الأفضل */
+        tbody tr:nth-child(even) {
+            background-color: #f0f8ff; /* لون أزرق فاتح جداً */
+        }
+
+        tbody tr:hover {
+            background-color: #e3f2fd; /* لون أزرق فاتح عند مرور الماوس */
+            color: #0d47a1; /* لون أزرق غامق للنص عند مرور الماوس */
+        }
+
+        /* تنسيق صف الإجمالي في نهاية الجدول */
+        .total-row {
+            background-color: #3f51b5 !important; /* لون أزرق متوسط */
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        .total-row td {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        th {
+            background-color: #4267B2; /* لون الفيسبوك */
+            color: white;
+            font-weight: bold;
+            border: 1px solid #29487d;
+            text-align: center;
+        }
+
+        td {
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: center !important;
+        }
+
+        .text-center {
+            text-align: center !important;
+        }
+
+        .section-title {
+            font-size: 15pt;
+            font-weight: bold;
+            margin: 15px 0 10px;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10pt;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+
+        .previous-balance-row {
+            background-color: #e8eaf6;
+            font-weight: bold;
+            border: 1px solid #3f51b5;
+        }
+
+        .total-row {
+            background-color: #4267B2; /* لون الفيسبوك */
+            color: white;
+            font-weight: bold;
+            border: 2px solid #29487d;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 9pt;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .badge-primary {
+            color: #0d47a1;
+        }
+
+        .badge-success {
+            color: #1b5e20;
+        }
+
+        .badge-warning {
+            color: #f57f17;
+        }
+
+        .badge-danger {
+            color: #b71c1c;
+        }
+
+        .badge-info {
+            color: #01579b;
+        }
+
+        .badge-secondary {
+            color: #263238;
+        }
+
+        /* لا نريد إخفاء العناصر ذات الفئة no-print في العرض العادي، فقط عند الطباعة */
+        .no-print {
+            display: block; /* تظهر في العرض العادي */
+        }
+
+        /* تنسيق أزرار الطباعة والتصدير */
+        .print-button-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .print-button, .export-button {
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-family: 'Tajawal', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .print-button:hover, .export-button:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .print-button {
+            background-color: #3f51b5;
+        }
+
+        .print-button:hover {
+            background-color: #303f9f;
+        }
+
+        .pdf-button {
+            background-color: #f44336;
+        }
+
+        .pdf-button:hover {
+            background-color: #d32f2f;
+        }
+
+        .excel-button {
+            background-color: #4caf50;
+        }
+
+        .excel-button:hover {
+            background-color: #388e3c;
+        }
+
+        .print-button i, .export-button i {
+            margin-left: 8px;
+        }
+
+        /* تنسيقات الطباعة */
+        @media print {
+            /* إخفاء أزرار الطباعة والتصدير عند الطباعة فقط */
+            .print-button-container, .no-print, .print-button, .export-button, .pdf-button, .excel-button {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                position: absolute !important;
+                z-index: -9999 !important;
+            }
+
+            /* منع تكرار رأس الجدول في كل صفحة */
+            thead {
+                display: table-row-group !important; /* يظهر مرة واحدة فقط */
+            }
+
+            /* إخفاء تذييل الجدول تمامًا */
+            tfoot {
+                display: none !important;
+            }
+
+            /* تنسيق الصفحة عند الطباعة */
+            @page {
+                margin: 0 !important;
+                orphans: 4 !important; /* عدد الأسطر الأدنى في بداية الصفحة */
+                widows: 4 !important; /* عدد الأسطر الأدنى في نهاية الصفحة */
+            }
+
+            /* تنسيق الصفحة بشكل عام */
+            body {
+                font-family: 'Tajawal', Arial, sans-serif !important;
+                background-color: white !important;
+                color: #333 !important;
+                font-size: 11pt !important;
+            }
+
+            /* تنسيق الجدول عند الطباعة */
+            table {
+                page-break-inside: auto;
+                margin-top: 20px !important;
+                margin-bottom: 20px !important;
+                width: 100% !important;
+                border: 2px solid #3f51b5 !important;
+                table-layout: fixed !important; /* تثبيت عرض الأعمدة */
+            }
+
+            /* منع انقسام الصفوف بين الصفحات */
+            tr {
+                page-break-inside: avoid;
+            }
+
+            /* تنسيق الخلايا عند الطباعة */
+            th, td {
+                padding: 8px !important;
+                text-align: center !important;
+                font-size: 9pt !important;
+                white-space: nowrap !important; /* منع انقسام النص إلى أسطر */
+                overflow: visible !important; /* إظهار النص بالكامل */
+            }
+
+            /* السماح بانقسام النص في عمود الوصف فقط عند الطباعة */
+            td:nth-child(7) {
+                white-space: normal !important;
+            }
+
+            /* تنسيق رأس الجدول */
+            thead tr {
+                background-color: #3f51b5 !important;
+                color: white !important;
+                font-weight: bold !important;
+            }
+
+            /* ضمان ظهور الألوان عند الطباعة */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            /* تحسين مظهر الجدول عند الطباعة */
+            table, th, td {
+                border: 1px solid #bbb !important;
+            }
+
+            th {
+                background-color: #4267B2 !important; /* لون الفيسبوك */
+                color: white !important;
+                font-weight: bold !important;
+                border: 1px solid #29487d !important;
+                text-align: center !important;
+            }
+
+            /* تنسيق صف الإجماليات */
+            .total-row {
+                background-color: #4267B2 !important; /* لون الفيسبوك */
+                color: white !important;
+                font-weight: bold !important;
+                border: 2px solid #29487d !important;
+                page-break-inside: avoid !important; /* منع انقسام صف الإجمالي بين الصفحات */
+                page-break-after: avoid !important; /* منع وجود فاصل صفحة بعد صف الإجمالي */
+                text-align: center !important;
+            }
+
+            /* ضمان ظهور صف الإجمالي بشكل صحيح */
+            .total-row td, .total-row th {
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 11pt !important;
+                padding: 10px !important;
+                border-color: #303f9f !important;
+            }
+
+            /* تنسيق الوارد والصادر في صف الإجمالي */
+            .total-row td[style*="color: green"],
+            .total-row .total-in {
+                color: #e8f5e9 !important; /* لون أخضر فاتح للوارد في صف الإجمالي */
+                font-weight: bold !important;
+                font-size: 11pt !important;
+            }
+
+            .total-row td[style*="color: red"],
+            .total-row .total-out {
+                color: #ffebee !important; /* لون أحمر فاتح للصادر في صف الإجمالي */
+                font-weight: bold !important;
+                font-size: 11pt !important;
+            }
+
+            .total-row .final-balance {
+                color: white !important;
+                font-weight: bold !important;
+                font-size: 11pt !important;
+            }
+
+            /* تنسيق صف الرصيد السابق */
+            .previous-balance-row {
+                background-color: #e8eaf6 !important;
+                font-weight: bold !important;
+                border: 1px solid #3f51b5 !important;
+            }
+
+            /* تنسيق ملخص الإجماليات */
+            .summary {
+                display: flex !important;
+                justify-content: space-around !important;
+                margin-bottom: 20px !important;
+                text-align: center !important;
+                page-break-inside: avoid !important; /* منع انقسام ملخص الإجماليات بين الصفحات */
+                width: 100% !important;
+            }
+
+            /* تنسيق مربعات الإجماليات */
+            .summary-box {
+                border: 2px solid #ddd !important;
+                border-radius: 8px !important;
+                padding: 10px !important;
+                width: 30% !important;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+                display: block !important;
+            }
+
+            .summary-box.income {
+                background-color: #c8e6c9 !important;
+                border: 1px solid #4caf50 !important;
+            }
+
+            .summary-box.expense {
+                background-color: #ffcdd2 !important;
+                border: 1px solid #f44336 !important;
+            }
+
+            .summary-box.balance {
+                background-color: #bbdefb !important;
+                border: 1px solid #2196f3 !important;
+                color: #0d47a1 !important;
+                display: block !important; /* ضمان ظهور مربع رصيد الخزنة */
+            }
+
+            .summary-title {
+                font-weight: bold !important;
+                margin-bottom: 2px !important;
+                font-size: 11pt !important;
+            }
+
+            .summary-amount {
+                font-size: 13pt !important;
+                font-weight: bold !important;
+            }
+
+            /* تنسيق الشارات */
+            .badge {
+                display: inline-block !important;
+                padding: 4px 8px !important;
+                font-size: 9pt !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+
+            .badge-primary {
+                color: #0d47a1 !important;
+            }
+
+            .badge-success {
+                color: #1b5e20 !important;
+            }
+
+            .badge-warning {
+                color: #f57f17 !important;
+            }
+
+            .badge-danger {
+                color: #b71c1c !important;
+            }
+
+            .badge-info {
+                color: #01579b !important;
+            }
+
+            .badge-secondary {
+                color: #263238 !important;
+            }
+
+            /* تنسيق الوارد والصادر */
+            td[style*="color: green"] {
+                color: #2e7d32 !important; /* لون أخضر غامق للوارد */
+                font-weight: bold !important;
+            }
+
+            td[style*="color: red"] {
+                color: #c62828 !important; /* لون أحمر غامق للصادر */
+                font-weight: bold !important;
+            }
+
+            th[style*="color: green"] {
+                color: #4caf50 !important;
+            }
+
+            th[style*="color: red"] {
+                color: #f44336 !important;
+            }
+
+            /* تنسيق الصفوف المتناوبة عند الطباعة */
+            tbody tr:nth-child(even) {
+                background-color: #f0f8ff !important; /* لون أزرق فاتح جداً */
+            }
+
+            /* تأثير مرور الماوس */
+            tbody tr:hover {
+                background-color: #e3f2fd !important; /* لون أزرق فاتح عند مرور الماوس */
+                color: #0d47a1 !important; /* لون أزرق غامق للنص عند مرور الماوس */
+            }
+
+            /* تنسيق الجدول بشكل عام */
+            table {
+                border: 2px solid #4267B2 !important; /* لون الفيسبوك */
+            }
+
+            /* تحسين قراءة النصوص */
+            td, th {
+                padding: 8px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+
+            /* تنسيق الهيدر عند الطباعة */
+            .header {
+                background-color: #f5f7ff !important;
+                border-bottom: 2px solid #3f51b5 !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+                padding: 10px 15px !important;
+                margin-bottom: 15px !important;
+            }
+
+            /* تنسيق عنوان التقرير */
+            .report-title {
+                color: #3f51b5 !important;
+                font-size: 17pt !important;
+                margin: 15px 0 10px !important;
+            }
+
+            /* تنسيق تاريخ التقرير */
+            .report-date {
+                color: #555 !important;
+                font-size: 11pt !important;
+                margin-bottom: 15px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- إضافة مكتبات jsPDF و SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // دالة تصدير إلى PDF
+        function exportToPDF() {
+            // إخفاء الأزرار مؤقتًا
+            const buttonContainer = document.querySelector('.print-button-container');
+            buttonContainer.style.display = 'none';
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // landscape orientation
+
+            // إضافة دعم للغة العربية
+            doc.addFont('{% static "fonts/Tajawal-Regular.ttf" %}', 'Tajawal', 'normal');
+            doc.addFont('{% static "fonts/Tajawal-Bold.ttf" %}', 'Tajawal', 'bold');
+            doc.setFont('Tajawal');
+
+            // تحويل HTML إلى صورة
+            html2canvas(document.querySelector('.container'), {
+                scale: 2, // زيادة الدقة
+                useCORS: true,
+                logging: false,
+                allowTaint: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 280; // عرض A4 landscape
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+
+                doc.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                doc.save('تقرير_الحركات_المالية.pdf');
+
+                // إعادة إظهار الأزرار
+                buttonContainer.style.display = 'flex';
+            });
+        }
+
+        // دالة تصدير إلى Excel
+        function exportToExcel() {
+            // إنشاء مصفوفة البيانات
+            const data = [];
+
+            // إضافة العنوان
+            data.push(['تقرير الحركات المالية']);
+
+            // إضافة نطاق التاريخ
+            const dateRange = document.querySelector('.report-date').innerText;
+            data.push([dateRange]);
+            data.push([]);
+
+            // إضافة الإجماليات
+            const summaryBoxes = document.querySelectorAll('.summary-box');
+            const summaryRow = [];
+            summaryBoxes.forEach(box => {
+                const title = box.querySelector('.summary-title').innerText;
+                const amount = box.querySelector('.summary-amount').innerText;
+                summaryRow.push(`${title}: ${amount}`);
+            });
+            data.push(summaryRow);
+            data.push([]);
+
+            // إضافة رأس الجدول
+            const headerRow = [];
+            const tableHeaders = document.querySelectorAll('table thead th');
+            tableHeaders.forEach(th => {
+                headerRow.push(th.innerText);
+            });
+            data.push(headerRow);
+
+            // إضافة بيانات الجدول
+            const tableRows = document.querySelectorAll('table tbody tr');
+            tableRows.forEach(tr => {
+                const rowData = [];
+                const cells = tr.querySelectorAll('td');
+                cells.forEach(td => {
+                    rowData.push(td.innerText);
+                });
+                data.push(rowData);
+            });
+
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // تطبيق تنسيقات الخلايا
+            // تنسيق العنوان
+            ws.A1 = { v: 'تقرير الحركات المالية', t: 's', s: { font: { bold: true, sz: 16 }, alignment: { horizontal: 'center', vertical: 'center' } } };
+
+            // دمج خلايا العنوان
+            if (!ws['!merges']) ws['!merges'] = [];
+            // دمج خلايا العنوان (الصف الأول)
+            ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
+
+            // تعيين اتجاه الورقة من اليمين إلى اليسار
+            ws['!dir'] = 'rtl';
+
+            // تعيين خصائص إضافية للورقة لدعم اللغة العربية
+            if (!ws['!cols']) ws['!cols'] = [];
+            if (!ws['!rows']) ws['!rows'] = [];
+
+            // تعيين عرض الأعمدة بشكل مناسب حسب محتواها
+            // تعيين عرض مخصص لكل عمود بناءً على نوع البيانات
+            ws['!cols'][0] = { width: 5 };  // رقم #
+            ws['!cols'][1] = { width: 12 }; // التاريخ
+            ws['!cols'][2] = { width: 18 }; // نوع العملية
+            ws['!cols'][3] = { width: 12 }; // وارد
+            ws['!cols'][4] = { width: 12 }; // صادر
+            ws['!cols'][5] = { width: 20 }; // العميل/المورد
+            ws['!cols'][6] = { width: 30 }; // الوصف
+            ws['!cols'][7] = { width: 15 }; // الرصيد قبل
+            ws['!cols'][8] = { width: 15 }; // الرصيد بعد
+
+            // تعيين ارتفاع الصفوف
+            for (let i = 0; i < data.length; i++) {
+                ws['!rows'][i] = { hpt: 25 }; // ارتفاع الصف بالنقاط
+            }
+
+            // تنسيق رأس الجدول (الصف الخامس - index 5)
+            const headerRowIndex = 5;
+            const headerCellStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4267B2" } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: {
+                    top: { style: 'thin', color: { rgb: "000000" } },
+                    bottom: { style: 'thin', color: { rgb: "000000" } },
+                    left: { style: 'thin', color: { rgb: "000000" } },
+                    right: { style: 'thin', color: { rgb: "000000" } }
+                }
+            };
+
+            // تطبيق تنسيق رأس الجدول
+            for (let c = 0; c < 9; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: headerRowIndex, c: c });
+                if (!ws[cellRef]) continue;
+                ws[cellRef].s = headerCellStyle;
+            }
+
+            // تنسيق خلايا البيانات
+            const dataCellStyle = {
+                alignment: { horizontal: 'center', vertical: 'center' },
+                border: {
+                    top: { style: 'thin', color: { rgb: "CCCCCC" } },
+                    bottom: { style: 'thin', color: { rgb: "CCCCCC" } },
+                    left: { style: 'thin', color: { rgb: "CCCCCC" } },
+                    right: { style: 'thin', color: { rgb: "CCCCCC" } }
+                }
+            };
+
+            // تنسيق خلايا الوارد باللون الأخضر
+            const incomeCellStyle = {
+                ...dataCellStyle,
+                font: { color: { rgb: "008000" }, bold: true }
+            };
+
+            // تنسيق خلايا الصادر باللون الأحمر
+            const expenseCellStyle = {
+                ...dataCellStyle,
+                font: { color: { rgb: "FF0000" }, bold: true }
+            };
+
+            // تطبيق تنسيقات خلايا البيانات
+            for (let r = headerRowIndex + 1; r < data.length; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) continue;
+
+                    // تطبيق تنسيق خاص للوارد والصادر
+                    if (c === 3) { // عمود الوارد
+                        ws[cellRef].s = incomeCellStyle;
+                    } else if (c === 4) { // عمود الصادر
+                        ws[cellRef].s = expenseCellStyle;
+                    } else {
+                        ws[cellRef].s = dataCellStyle;
+                    }
+                }
+            }
+
+            // إضافة خصائص للورقة
+            ws['!margins'] = {
+                left: 0.7,
+                right: 0.7,
+                top: 0.75,
+                bottom: 0.75,
+                header: 0.3,
+                footer: 0.3
+            };
+
+            // إنشاء مصنف عمل مع إعدادات RTL
+            const wb = XLSX.utils.book_new();
+
+            // تعيين خصائص المصنف
+            if (!wb.Workbook) wb.Workbook = {};
+            if (!wb.Workbook.Views) wb.Workbook.Views = [];
+
+            // تعيين اتجاه المصنف من اليمين إلى اليسار
+            wb.Workbook.Views[0] = {
+                RTL: true // تعيين اتجاه القراءة من اليمين إلى اليسار
+            };
+
+            // إضافة ورقة العمل إلى المصنف
+            XLSX.utils.book_append_sheet(wb, ws, 'تقرير الحركات المالية');
+
+            // تعيين خصائص إضافية للمصنف
+            if (!wb.Props) wb.Props = {};
+            wb.Props.Title = 'تقرير الحركات المالية';
+            wb.Props.Subject = 'تقرير الحركات المالية';
+            wb.Props.Author = 'نظام المحاسبة';
+
+            // تصدير المصنف
+            XLSX.writeFile(wb, 'تقرير_الحركات_المالية.xlsx');
+        }
+    </script>
+    <!-- أزرار الطباعة والتصدير (تظهر في العرض العادي وتختفي عند الطباعة) -->
+    <div class="print-button-container no-print">
+        <button onclick="window.print()" class="print-button">
+            <i class="fas fa-print"></i> طباعة التقرير
+        </button>
+        <button onclick="exportToPDF()" class="export-button pdf-button">
+            <i class="fas fa-file-pdf"></i> تصدير PDF
+        </button>
+        <button onclick="exportToExcel()" class="export-button excel-button">
+            <i class="fas fa-file-excel"></i> تصدير Excel
+        </button>
+    </div>
+
+    <div class="container">
+        <!-- تم إزالة رأس الصفحة - معلومات الشركة -->
+
+        <!-- عنوان التقرير -->
+        <h2 class="report-title">تقرير الحركات المالية</h2>
+        <div class="report-date">
+            {% if from_date and to_date %}
+                الفترة من <span dir="ltr" style="display: inline-block; direction: ltr; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px; border-radius: 3px;">{{ from_date }}</span> إلى <span dir="ltr" style="display: inline-block; direction: ltr; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px; border-radius: 3px;">{{ to_date }}</span>
+            {% elif from_date %}
+                من تاريخ <span dir="ltr" style="display: inline-block; direction: ltr; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px; border-radius: 3px;">{{ from_date }}</span>
+            {% elif to_date %}
+                حتى تاريخ <span dir="ltr" style="display: inline-block; direction: ltr; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px; border-radius: 3px;">{{ to_date }}</span>
+            {% else %}
+                جميع الفترات
+            {% endif %}
+            {% if selected_safe_name %}
+                | الخزنة: {{ selected_safe_name }}
+            {% endif %}
+        </div>
+
+        <!-- ملخص الإجماليات -->
+        <div class="summary">
+            <div class="summary-box income">
+                <div class="summary-title">إجمالي الإيرادات (وارد)</div>
+                <div class="summary-amount">
+                    {% if total_in is not None %}
+                        {{ total_in|floatformat:2 }}
+                    {% elif current_in is not None %}
+                        {{ current_in|floatformat:2 }}
+                    {% else %}
+                        0.00
+                    {% endif %}
+                </div>
+            </div>
+            <div class="summary-box expense">
+                <div class="summary-title">إجمالي المصروفات (صادر)</div>
+                <div class="summary-amount">
+                    {% if total_out is not None %}
+                        {{ total_out|floatformat:2 }}
+                    {% elif current_out is not None %}
+                        {{ current_out|floatformat:2 }}
+                    {% else %}
+                        0.00
+                    {% endif %}
+                </div>
+            </div>
+            <!-- رصيد الخزنة الحالي - تم تعديله لضمان الظهور في الطباعة -->
+            <div class="summary-box balance">
+                <div class="summary-title">رصيد الخزنة الحالي</div>
+                <div class="summary-amount">
+                    {% if current_safe_balance is not None %}
+                        {{ current_safe_balance|floatformat:2 }}
+                    {% elif safe and safe.current_balance is not None %}
+                        {{ safe.current_balance|floatformat:2 }}
+                    {% elif final_balance is not None %}
+                        {{ final_balance|floatformat:2 }}
+                    {% else %}
+                        {% if total_in is not None and total_out is not None %}
+                            {{ total_in|add:"-"|add:total_out|floatformat:2 }}
+                        {% else %}
+                            0.00
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- تم تقليل المسافة بين الإجماليات والجدول -->
+        <div style="margin: 10px 0;"></div>
+
+        <!-- تفاصيل الحركات المالية -->
+        {% if transactions_with_balance %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 3%;">#</th>
+                        <th style="width: 10%; min-width: 80px;">التاريخ</th>
+                        <th style="width: 12%;">نوع العملية</th>
+                        <th style="width: 8%;">وارد</th>
+                        <th style="width: 8%;">صادر</th>
+                        <th style="width: 12%;">العميل/المورد</th>
+                        <th style="width: 25%;">الوصف</th>
+                        <th style="width: 11%;">الرصيد قبل</th>
+                        <th style="width: 11%;">الرصيد بعد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if previous_balance is not None %}
+                    <tr class="previous-balance-row">
+                        <td colspan="3" class="text-center">الرصيد السابق حتى <span dir="ltr" style="display: inline-block; direction: ltr; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px; border-radius: 3px;">{{ from_date }}</span></td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td colspan="2"></td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">{{ previous_balance|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% for item in transactions_with_balance %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td dir="ltr" style="min-width: 80px; white-space: nowrap !important; text-align: center !important; direction: ltr !important; font-weight: bold; background-color: #f0f8ff; padding: 2px 5px;">{{ item.transaction.date|date:"Y-m-d" }}</td>
+                            <td>
+                                {% if item.transaction.transaction_type == 'sale_invoice' %}
+                                    <span class="badge badge-primary">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'purchase_invoice' %}
+                                    <span class="badge badge-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'sale_return_invoice' %}
+                                    <span class="badge badge-warning">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'purchase_return_invoice' %}
+                                    <span class="badge badge-info">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'collection' %}
+                                    <span class="badge badge-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'payment' %}
+                                    <span class="badge badge-secondary">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'deposit' %}
+                                    <span class="badge badge-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'withdrawal' %}
+                                    <span class="badge badge-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'expense' %}
+                                    <span class="badge badge-danger">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% elif item.transaction.transaction_type == 'income' %}
+                                    <span class="badge badge-success">{{ item.transaction.get_transaction_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end" style="color: green;">
+                                {% if item.transaction.transaction_type == 'sale_invoice' or item.transaction.transaction_type == 'collection' or item.transaction.transaction_type == 'deposit' or item.transaction.transaction_type == 'income' or item.transaction.transaction_type == 'purchase_return_invoice' %}
+                                    {{ item.transaction.amount|floatformat:2 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-end" style="color: red;">
+                                {% if item.transaction.transaction_type == 'purchase_invoice' or item.transaction.transaction_type == 'payment' or item.transaction.transaction_type == 'withdrawal' or item.transaction.transaction_type == 'expense' or item.transaction.transaction_type == 'sale_return_invoice' %}
+                                    {{ item.transaction.amount|floatformat:2 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.transaction.contact %}
+                                    {{ item.transaction.contact.name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ item.transaction.description|default:"-" }}</td>
+                            <td class="text-end">{{ item.transaction.balance_before|floatformat:2 }}</td>
+                            <td class="text-end">{{ item.running_balance|floatformat:2 }}</td>
+                        </tr>
+                    {% endfor %}
+
+                    <!-- صف الإجمالي في نهاية الجدول -->
+                    <tr class="total-row">
+                        <td colspan="3" class="text-end">الإجمالي</td>
+                        <td class="text-end total-in" style="color: green;">
+                            {% if total_in is not None %}
+                                {{ total_in|floatformat:2 }}
+                            {% elif current_in is not None %}
+                                {{ current_in|floatformat:2 }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                        <td class="text-end total-out" style="color: red;">
+                            {% if total_out is not None %}
+                                {{ total_out|floatformat:2 }}
+                            {% elif current_out is not None %}
+                                {{ current_out|floatformat:2 }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                        <td colspan="2"></td>
+                        <td class="text-end">
+                            {% if previous_balance is not None %}
+                                الرصيد النهائي:
+                            {% endif %}
+                        </td>
+                        <td class="text-end final-balance">
+                            {% if final_balance is not None %}
+                                {{ final_balance|floatformat:2 }}
+                            {% elif previous_balance is not None and total_in is not None and total_out is not None %}
+                                {{ previous_balance|add:total_in|add:"-"|add:total_out|floatformat:2 }}
+                            {% else %}
+                                0.00
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+                <!-- تم إزالة تذييل الجدول تمامًا -->
+            </table>
+        {% else %}
+            <p>لا توجد حركات مالية مطابقة لمعايير البحث.</p>
+        {% endif %}
+
+
+    </div>
+</body>
+</html>
