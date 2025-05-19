@@ -244,6 +244,9 @@
         <button onclick="window.print()" style="background-color: #2ecc71; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin-right: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
             <span style="margin-left: 5px;">&#128424;</span> طباعة التقرير
         </button>
+        <button onclick="exportToPDF()" style="background-color: #e74c3c; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin-right: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <span style="margin-left: 5px;">&#128196;</span> تصدير PDF
+        </button>
         <a href="/hatchery/daily_report/?date={{ report_date|date:'Y-m-d' }}" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;">
             <span style="margin-left: 5px;">&#8592;</span> العودة
         </a>
@@ -390,7 +393,6 @@
         {% endif %}
     </div>
 
-    <div class="page-break"></div>
     <!-- المطهرات الواردة -->
     <div class="print-section">
         <div class="print-section-title">المطهرات الواردة اليوم</div>
@@ -422,7 +424,6 @@
         {% endif %}
     </div>
 
-    <div class="page-break"></div>
     <!-- المطهرات المنصرفة -->
     <div class="print-section">
         <div class="print-section-title">المطهرات المنصرفة اليوم</div>
@@ -454,7 +455,6 @@
         {% endif %}
     </div>
 
-    <div class="page-break"></div>
     <!-- مبيعات الكتاكيت الفرزة -->
     <div class="print-section">
         <div class="print-section-title">مبيعات الكتاكيت الفرزة اليوم</div>
@@ -488,32 +488,56 @@
         {% endif %}
     </div>
 
-    <div class="print-footer">
-        <div style="display: flex; justify-content: space-between; align-items: center; direction: rtl; font-size: 10px;">
-            <div>
-                <span style="margin-left: 3px;">&#128197;</span>
-                تاريخ التقرير: {{ report_date|date:"Y-m-d" }}
-            </div>
-            <div>
-                <span style="margin-left: 3px;">&#128336;</span>
-                وقت الإنشاء: {{ current_datetime|date:"H:i" }}
-            </div>
-            <div>
-                <span style="margin-left: 3px;">&#128187;</span>
-                نظام إدارة معامل التفريخ
-            </div>
-        </div>
-    </div>
+
 </div>
 
 <script>
-    // تنفيذ الطباعة تلقائياً عند تحميل الصفحة في وضع الطباعة
-    if (window.location.href.includes('export=print')) {
-        window.addEventListener('load', function() {
-            // تأخير قليل للتأكد من تحميل الصفحة بالكامل
-            setTimeout(function() {
-                window.print();
-            }, 500);
+    // إضافة مكتبات jsPDF و html2canvas
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>');
+
+    // وظيفة تصدير التقرير إلى PDF
+    function exportToPDF() {
+        // إخفاء أزرار التحكم قبل التصدير
+        const controls = document.querySelector('.print-controls');
+        controls.style.display = 'none';
+
+        // تحويل الصفحة إلى صورة
+        html2canvas(document.body, {
+            scale: 2, // جودة أعلى
+            useCORS: true,
+            logging: false,
+            allowTaint: true
+        }).then(function(canvas) {
+            // إعادة إظهار أزرار التحكم
+            controls.style.display = '';
+
+            // إنشاء ملف PDF
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+
+            // حساب نسبة العرض للصفحة
+            const imgWidth = 210; // عرض A4 بالملم
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            const imgData = canvas.toDataURL('image/png');
+
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // إضافة الصفحة الأولى
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= 297; // طول A4 بالملم
+
+            // إضافة صفحات إضافية إذا كان التقرير طويلاً
+            while (heightLeft > 0) {
+                position = -297 * (imgHeight / heightLeft);
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= 297;
+            }
+
+            // تنزيل الملف
+            pdf.save(`تقرير_المعمل_{{ report_date|date:"Y-m-d" }}.pdf`);
         });
     }
 </script>
