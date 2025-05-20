@@ -1,0 +1,115 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}إعدادات الطباعة والتصدير{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="fas fa-cog text-primary me-2"></i>
+                    إعدادات الطباعة والتصدير
+                </h2>
+                <a href="{% url 'hatchery:reports' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i>
+                    العودة إلى التقارير
+                </a>
+            </div>
+            <hr>
+            <p class="text-muted">قم بتخصيص إعدادات الطباعة وتصدير التقارير بصيغة PDF وExcel حسب احتياجاتك.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>
+                        إعدادات الطباعة والتصدير
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'hatchery:print_settings' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ next }}">
+
+                        <!-- إعدادات عامة -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 text-primary">
+                                <i class="fas fa-cogs me-2"></i>
+                                إعدادات عامة
+                            </h5>
+
+                            <div class="form-check form-switch mb-3 mt-3">
+                                {{ form.show_created_today }}
+                                <label class="form-check-label" for="{{ form.show_created_today.id_for_label }}">
+                                    {{ form.show_created_today.label }}
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    عند تفعيل هذا الخيار، سيتم عرض الدفعات التي تم تسجيلها في النظام اليوم حتى لو كان تاريخ دخولها مختلفًا.
+                                </small>
+                            </div>
+
+                            <div class="form-check form-switch mb-3">
+                                {{ form.hide_empty_sections }}
+                                <label class="form-check-label" for="{{ form.hide_empty_sections.id_for_label }}">
+                                    {{ form.hide_empty_sections.label }}
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    عند تفعيل هذا الخيار، سيتم إخفاء الأقسام التي لا تحتوي على بيانات في التقرير.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- إعدادات التوزيعات -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 text-primary">
+                                <i class="fas fa-boxes me-2"></i>
+                                إعدادات التوزيعات
+                            </h5>
+
+                            <div class="form-check form-switch mb-3 mt-3">
+                                {{ form.show_price_in_distribution }}
+                                <label class="form-check-label" for="{{ form.show_price_in_distribution.id_for_label }}">
+                                    {{ form.show_price_in_distribution.label }}
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    عند تفعيل هذا الخيار، سيتم عرض سعر الكتكوت في جدول توزيعات الدفعات.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- إعدادات مبيعات الفرزة -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 text-primary">
+                                <i class="fas fa-shopping-cart me-2"></i>
+                                إعدادات مبيعات الفرزة
+                            </h5>
+
+                            <div class="form-check form-switch mb-3 mt-3">
+                                {{ form.show_price_in_culled_sales }}
+                                <label class="form-check-label" for="{{ form.show_price_in_culled_sales.id_for_label }}">
+                                    {{ form.show_price_in_culled_sales.label }}
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    عند تفعيل هذا الخيار، سيتم عرض سعر الكتكوت الفرزة والمبلغ الإجمالي في جدول مبيعات الفرزة.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                حفظ الإعدادات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

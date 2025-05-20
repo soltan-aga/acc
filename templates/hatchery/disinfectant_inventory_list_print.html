@@ -1,0 +1,91 @@
+{% extends 'base/print_base.html' %}
+{% load static %}
+{% load hatchery_filters %}
+
+{% block title %}طباعة مخزون المطهرات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="container print-container" dir="rtl" style="text-align: right;">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="mb-0">قائمة مخزون المطهرات</h2>
+            <p class="text-muted">تاريخ الطباعة: {{ current_datetime|date:"Y-m-d H:i" }}</p>
+            {% if search_query %}
+            <p class="text-muted">نتائج البحث عن: {{ search_query }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if inventory_items %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ملاحظات</th>
+                            <th>حالة المخزون</th>
+                            <th>الحد الأدنى</th>
+                            <th>المخزون الحالي</th>
+                            <th>وحدة القياس</th>
+                            <th>المورد</th>
+                            <th>اسم المطهر</th>
+                            <th>التصنيف</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory_items %}
+                        <tr>
+                            <td>{{ item.notes|default:"-" }}</td>
+                            <td>
+                                {% if item.is_low_stock %}
+                                <span class="text-danger">منخفض</span>
+                                {% else %}
+                                <span class="text-success">جيد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.minimum_stock|smart_number }}</td>
+                            <td>{{ item.current_stock|smart_number }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>{{ item.supplier|default:"-" }}</td>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.category.name }}</td>
+                            <td>{{ forloop.counter }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> لا توجد مطهرات مسجلة في المخزون حالياً
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="mb-0">عدد المطهرات: {{ inventory_items.count }}</p>
+                </div>
+                <div>
+                    <p class="mb-0">توقيع المسؤول: ________________</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تنزيل PDF تلقائيًا إذا كان مطلوبًا
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_download_pdf') === '1') {
+            window.print();
+        }
+    });
+</script>
+{% endblock %}

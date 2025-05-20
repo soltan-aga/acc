@@ -35,6 +35,13 @@ $(document).ready(function() {
         $('#filter-form').toggleClass('d-none');
     });
 
+    // Initialize AdminLTE card widget
+    $('.card-tools [data-card-widget="collapse"]').on('click', function() {
+        var $card = $(this).closest('.card');
+        $card.find('.card-body').slideToggle();
+        $(this).find('i').toggleClass('fa-minus fa-plus');
+    });
+
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {

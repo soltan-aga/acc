@@ -3,29 +3,42 @@
 
 {% block title %}قائمة مبيعات الفرزة - نظام إدارة معامل التفريخ{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
+<!-- فلاتر البحث -->
+{% include 'partials/_search_filters.html' with filter_title="فلاتر مبيعات الفرزة" filters=sale_filters date_filter=True search_placeholder="اسم العميل، اسم الدفعة..." search_query=search_query from_date=from_date to_date=to_date %}
+
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>قائمة مبيعات الفرزة</h4>
-                <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-plus me-1"></i> تسجيل مبيعات جديدة
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-                        {% for hatching in available_hatchings %}
-                        <li><a class="dropdown-item" href="{% url 'hatchery:culled_sale_create' hatching.id %}">{{ hatching.incubation.batch_entry.batch_name }} ({{ hatching.hatch_date|date:"Y-m-d" }}) - متاح: {{ hatching.available_culled_count }}</a></li>
-                        {% empty %}
-                        <li><a class="dropdown-item disabled" href="#">لا توجد دفعات متاحة للبيع</a></li>
-                        {% endfor %}
-                    </ul>
+                <div class="d-flex">
+                    <a href="{% url 'hatchery:culled_sale_list' %}?export=print" target="_blank" class="btn btn-light me-2">
+                        <i class="fas fa-print me-1"></i> طباعة
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-plus me-1"></i> تسجيل مبيعات جديدة
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                            {% for hatching in available_hatchings %}
+                            <li><a class="dropdown-item" href="{% url 'hatchery:culled_sale_create' hatching.id %}">{{ hatching.incubation.batch_entry.batch_name }} ({{ hatching.hatch_date|date:"Y-m-d" }}) - متاح: {{ hatching.available_culled_count }}</a></li>
+                            {% empty %}
+                            <li><a class="dropdown-item disabled" href="#">لا توجد دفعات متاحة للبيع</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
                 {% if sales %}
                 <div class="table-container">
-                    <table class="table table-hover">
+                    <table id="salesTable" class="table table-hover">
                         <thead>
                             <tr>
                                 <th>العميل</th>
@@ -37,7 +50,7 @@
                                 <th>المدفوع</th>
                                 <th>المتبقي</th>
                                 <th>حالة الدفع</th>
-                                <th>الإجراءات</th>
+                                <th class="no-export">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -83,4 +96,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="{% static 'js/hatchery_print_export.js' %}"></script>
+
+<script>
+    $(document).ready(function() {
+        initDataTable('salesTable', 2, 'desc');
+    });
+</script>
 {% endblock %}

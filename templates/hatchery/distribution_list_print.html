@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة قائمة توزيع الدفعات</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Tajawal', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+            text-align: right;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .info {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-item {
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+        .no-print {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .no-print button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Tajawal', 'Arial', sans-serif;
+        }
+        .no-print button.btn-danger {
+            background-color: #f44336;
+        }
+        .no-print button.btn-primary {
+            background-color: #2196F3;
+        }
+        .no-print button.btn-secondary {
+            background-color: #607d8b;
+        }
+        .distribution-details {
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .distribution-header {
+            background-color: #f2f2f2;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" class="btn-primary">طباعة</button>
+        <button onclick="exportToPDF()" class="btn-danger">تصدير PDF</button>
+        <button onclick="exportToExcel()" class="btn-success">تصدير إكسل</button>
+        <button onclick="window.close()" class="btn-secondary">إغلاق</button>
+    </div>
+
+    <div class="print-container">
+        <div class="header">
+            <h1>قائمة توزيع الدفعات</h1>
+            <p>تاريخ التقرير: {{ current_datetime|date:"Y-m-d" }}</p>
+            {% if search_query %}
+            <p>البحث: {{ search_query }}</p>
+            {% endif %}
+            {% if from_date or to_date %}
+            <p>
+                الفترة:
+                {% if from_date %}من {{ from_date }}{% endif %}
+                {% if to_date %} إلى {{ to_date }}{% endif %}
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="info">
+            <div class="info-item">
+                <strong>عدد التوزيعات:</strong> {{ distributions|length }}
+            </div>
+            <div class="info-item">
+                <strong>إجمالي الكتاكيت الموزعة:</strong>
+                {% with total_quantity=0 %}
+                    {% for distribution in distributions %}
+                        {% with total_quantity=total_quantity|add:distribution.total_distributed_count %}{% endwith %}
+                    {% endfor %}
+                    {{ total_quantity }}
+                {% endwith %}
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ التوزيع</th>
+                    <th>تاريخ الخروج</th>
+                    <th>إجمالي الكتاكيت</th>
+                    <th>الكتاكيت الموزعة</th>
+                    <th>الكتاكيت المتبقية</th>
+                    <th>إجمالي المبلغ المدفوع</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for distribution in distributions %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ distribution.hatching.incubation.batch_entry.batch_name }}</td>
+                    <td>{{ distribution.distribution_date }}</td>
+                    <td>{{ distribution.hatching.hatch_date }}</td>
+                    <td>{{ distribution.hatching.chicks_count }}</td>
+                    <td>{{ distribution.total_distributed_count }}</td>
+                    <td>{{ distribution.remaining_chicks }}</td>
+                    <td>{{ distribution.total_paid_amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center;">لا توجد توزيعات مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- تفاصيل التوزيع لكل دفعة -->
+        {% for distribution in distributions %}
+        <div class="distribution-details {% if not forloop.first %}page-break{% endif %}">
+            <div class="distribution-header">
+                تفاصيل توزيع: {{ distribution.hatching.incubation.batch_entry.batch_name }} - {{ distribution.distribution_date }}
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>العميل</th>
+                        <th>عدد الكتاكيت</th>
+                        <th>السعر للوحدة</th>
+                        <th>الإجمالي</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>ملاحظات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in distribution.items %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.customer.name }}</td>
+                        <td>{{ item.chicks_count }}</td>
+                        <td>{{ item.price_per_unit }}</td>
+                        <td>{{ item.total_amount }}</td>
+                        <td>{{ item.paid_amount }}</td>
+                        <td>{{ item.remaining_amount }}</td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align: center;">لا توجد عناصر توزيع</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2">الإجمالي</th>
+                        <th>{{ distribution.total_distributed_count }}</th>
+                        <th>-</th>
+                        <th>{{ distribution.total_amount }}</th>
+                        <th>{{ distribution.total_paid_amount }}</th>
+                        <th>{{ distribution.total_remaining_amount }}</th>
+                        <th>-</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% endfor %}
+
+        <div class="footer">
+            <p>تم إنشاء هذا التقرير في {{ current_datetime }}</p>
+        </div>
+    </div>
+
+    <!-- إضافة مكتبات jsPDF و SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // دالة تصدير إلى PDF
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+
+            // إخفاء أزرار الطباعة والتصدير
+            const printButtons = document.querySelector('.no-print');
+            printButtons.style.display = 'none';
+
+            // إنشاء PDF
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4',
+                compress: true
+            });
+
+            // إضافة دعم للغة العربية
+            doc.setFont('Tajawal');
+            doc.setR2L(true);
+
+            // استخدام html2canvas لتحويل المحتوى إلى صورة
+            html2canvas(document.querySelector('.print-container'), {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                allowTaint: true
+            }).then(canvas => {
+                // إضافة الصورة إلى PDF
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = doc.internal.pageSize.getWidth() - 20;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                // إضافة العنوان
+                doc.setFontSize(16);
+                doc.text('قائمة توزيع الدفعات', doc.internal.pageSize.getWidth() / 2, 10, { align: 'center' });
+
+                // إضافة الصورة
+                doc.addImage(imgData, 'PNG', 10, 20, imgWidth, imgHeight);
+
+                // إضافة ترقيم الصفحات
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.text(`صفحة ${i} من ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                }
+
+                // تنزيل الملف
+                doc.save('قائمة_توزيع_الدفعات_{{ current_datetime|date:"Y-m-d" }}.pdf');
+
+                // إظهار الأزرار مرة أخرى
+                printButtons.style.display = 'flex';
+            });
+        }
+
+        // دالة تصدير إلى Excel
+        function exportToExcel() {
+            // الحصول على جدول البيانات
+            const table = document.querySelector('table');
+
+            // إنشاء مصفوفة لتخزين البيانات
+            const data = [];
+
+            // إضافة العناوين
+            const headers = [];
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                headers.push(cell.innerText.trim());
+            });
+            data.push(headers);
+
+            // إضافة البيانات
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    rowData.push(cell.innerText.trim());
+                });
+                data.push(rowData);
+            });
+
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.aoa_to_sheet(data);
+
+            // إنشاء مصنف عمل
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'توزيع الدفعات');
+
+            // تنزيل الملف
+            XLSX.writeFile(wb, 'قائمة_توزيع_الدفعات_{{ current_datetime|date:"Y-m-d" }}.xlsx');
+        }
+    </script>
+</body>
+</html>

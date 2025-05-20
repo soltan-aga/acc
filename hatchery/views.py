@@ -2,21 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Q, F
 from django.http import HttpResponse, JsonResponse
-from django.template.loader import get_template
-from django.conf import settings
-import os
+from django.template.loader import render_to_string
+
 import io
 import xlsxwriter
-from datetime import datetime
-import arabic_reshaper
-from bidi.algorithm import get_display
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
 # لا نحتاج إلى استيراد pdfmetrics و TTFont لأننا نستخدم الخطوط المدمجة
 from .models import (
     BatchName, BatchEntry, BatchIncubation, BatchHatching,
@@ -27,8 +19,10 @@ from .forms import (
     BatchNameForm, BatchEntryForm, BatchIncubationForm, BatchHatchingForm,
     CustomerForm, CulledSaleForm, DisinfectantCategoryForm,
     DisinfectantInventoryForm, DisinfectantTransactionForm,
-    BatchDistributionForm, BatchDistributionItemForm, BatchDistributionItemFormSet
+    BatchDistributionForm, BatchDistributionItemForm, BatchDistributionItemFormSet,
+    PrintSettingsForm
 )
+import json
 
 @login_required
 def home(request):
@@ -118,7 +112,62 @@ def batch_name_delete(request, pk):
 def batch_list(request):
     """عرض قائمة الدفعات الواردة"""
     batches = BatchEntry.objects.all().order_by('-date')
-    return render(request, 'hatchery/batch_list.html', {'batches': batches})
+
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        batches = batches.filter(
+            Q(batch_name__name__icontains=search_query) |
+            Q(driver__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        batches = batches.filter(date__gte=from_date)
+    if to_date:
+        batches = batches.filter(date__lte=to_date)
+
+    # الفلترة حسب اسم الدفعة
+    batch_name_id = request.GET.get('batch_name')
+    if batch_name_id:
+        batches = batches.filter(batch_name_id=batch_name_id)
+
+    # إعداد قائمة الفلاتر
+    batch_names = BatchName.objects.filter(is_active=True).order_by('name')
+
+    batch_filters = [
+        {
+            'name': 'batch_name',
+            'label': 'اسم الدفعة',
+            'type': 'select',
+            'options': batch_names,
+            'value': batch_name_id
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/batch_list_print.html', {
+            'batches': batches,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+
+    return render(request, 'hatchery/batch_list.html', {
+        'batches': batches,
+        'batch_filters': batch_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
+    })
 
 @login_required
 def batch_create(request):
@@ -168,9 +217,37 @@ def incubation_list(request):
     """عرض قائمة تسكين الدفعات"""
     incubations = BatchIncubation.objects.all().order_by('-incubation_date')
 
-    # الحصول على الدفعات المتاحة للتسكين
-    # نحصل على الدفعات التي لم يتم تسكينها بعد
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        incubations = incubations.filter(
+            Q(batch_entry__batch_name__name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
 
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        incubations = incubations.filter(incubation_date__gte=from_date)
+    if to_date:
+        incubations = incubations.filter(incubation_date__lte=to_date)
+
+    # الفلترة حسب اسم الدفعة
+    batch_name_id = request.GET.get('batch_name')
+    if batch_name_id:
+        incubations = incubations.filter(batch_entry__batch_name_id=batch_name_id)
+
+    # الفلترة حسب حالة الخروج
+    hatched_status = request.GET.get('hatched_status')
+    if hatched_status:
+        if hatched_status == 'hatched':
+            incubations = incubations.filter(hatching__isnull=False)
+        elif hatched_status == 'not_hatched':
+            incubations = incubations.filter(hatching__isnull=True)
+
+    # الحصول على الدفعات المتاحة للتسكين
     # أولاً، نحصل على قائمة الدفعات التي تم تسكينها بالفعل
     incubated_batch_ids = BatchIncubation.objects.values_list('batch_entry_id', flat=True)
 
@@ -181,9 +258,45 @@ def incubation_list(request):
         id__in=incubated_batch_ids  # استبعاد الدفعات التي تم تسكينها بالفعل
     ).order_by('-date')
 
+    # إعداد قائمة الفلاتر
+    batch_names = BatchName.objects.filter(is_active=True).order_by('name')
+
+    incubation_filters = [
+        {
+            'name': 'batch_name',
+            'label': 'اسم الدفعة',
+            'type': 'select',
+            'options': batch_names,
+            'value': batch_name_id
+        },
+        {
+            'name': 'hatched_status',
+            'label': 'حالة الخروج',
+            'type': 'select',
+            'options': [('hatched', 'خرجت'), ('not_hatched', 'لم تخرج')],
+            'value': hatched_status
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/incubation_list_print.html', {
+            'incubations': incubations,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+
     return render(request, 'hatchery/incubation_list.html', {
         'incubations': incubations,
-        'available_batches': available_batches
+        'available_batches': available_batches,
+        'incubation_filters': incubation_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
     })
 
 @login_required
@@ -244,6 +357,37 @@ def hatching_list(request):
     """عرض قائمة خروج الدفعات"""
     hatchings = BatchHatching.objects.all().order_by('-hatch_date')
 
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        hatchings = hatchings.filter(
+            Q(incubation__batch_entry__batch_name__name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        hatchings = hatchings.filter(hatch_date__gte=from_date)
+    if to_date:
+        hatchings = hatchings.filter(hatch_date__lte=to_date)
+
+    # الفلترة حسب اسم الدفعة
+    batch_name_id = request.GET.get('batch_name')
+    if batch_name_id:
+        hatchings = hatchings.filter(incubation__batch_entry__batch_name_id=batch_name_id)
+
+    # الفلترة حسب نسبة الفقس
+    hatch_rate_min = request.GET.get('hatch_rate_min')
+    hatch_rate_max = request.GET.get('hatch_rate_max')
+
+    if hatch_rate_min:
+        hatchings = hatchings.filter(hatch_rate__gte=float(hatch_rate_min))
+    if hatch_rate_max:
+        hatchings = hatchings.filter(hatch_rate__lte=float(hatch_rate_max))
+
     # الحصول على الدفعات الجاهزة للخروج
     # نحصل على الدفعات المسكنة التي حان موعد خروجها ولم يتم تسجيل خروجها بعد
     today = timezone.now().date()
@@ -258,9 +402,52 @@ def hatching_list(request):
         id__in=hatched_incubation_ids  # لم يتم تسجيل خروجها بعد
     ).order_by('expected_hatch_date')
 
+    # إعداد قائمة الفلاتر
+    batch_names = BatchName.objects.filter(is_active=True).order_by('name')
+
+    hatching_filters = [
+        {
+            'name': 'batch_name',
+            'label': 'اسم الدفعة',
+            'type': 'select',
+            'options': batch_names,
+            'value': batch_name_id
+        },
+        {
+            'name': 'hatch_rate_min',
+            'label': 'نسبة الفقس (من)',
+            'type': 'text',
+            'placeholder': '0',
+            'value': hatch_rate_min
+        },
+        {
+            'name': 'hatch_rate_max',
+            'label': 'نسبة الفقس (إلى)',
+            'type': 'text',
+            'placeholder': '100',
+            'value': hatch_rate_max
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/hatching_list_print.html', {
+            'hatchings': hatchings,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+
     return render(request, 'hatchery/hatching_list.html', {
         'hatchings': hatchings,
-        'ready_incubations': ready_incubations
+        'ready_incubations': ready_incubations,
+        'hatching_filters': hatching_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
     })
 
 @login_required
@@ -358,21 +545,76 @@ def customer_detail(request, pk):
 @login_required
 def customer_update(request, pk):
     """تحديث بيانات عميل"""
-    # Placeholder - will be implemented later
-    messages.success(request, 'تم تحديث بيانات العميل بنجاح')
-    return redirect('hatchery:customer_detail', pk=pk)
+    customer = get_object_or_404(Customer, pk=pk)
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST, instance=customer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'تم تحديث بيانات العميل بنجاح')
+            return redirect('hatchery:customer_detail', pk=pk)
+    else:
+        form = CustomerForm(instance=customer)
+
+    return render(request, 'hatchery/customer_form.html', {'form': form})
 
 @login_required
 def customer_delete(request, pk):
     """حذف عميل"""
-    # Placeholder - will be implemented later
-    messages.success(request, 'تم حذف العميل بنجاح')
-    return redirect('hatchery:customer_list')
+    customer = get_object_or_404(Customer, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            customer.delete()
+            messages.success(request, 'تم حذف العميل بنجاح')
+        except Exception as e:
+            messages.error(request, f'لا يمكن حذف العميل: {str(e)}')
+        return redirect('hatchery:customer_list')
+
+    return render(request, 'hatchery/customer_confirm_delete.html', {'customer': customer})
 
 @login_required
 def culled_sale_list(request):
     """عرض قائمة مبيعات الفرزة"""
     sales = CulledSale.objects.all().order_by('-invoice_date')
+
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        sales = sales.filter(
+            Q(customer__name__icontains=search_query) |
+            Q(hatching__incubation__batch_entry__batch_name__name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        sales = sales.filter(invoice_date__gte=from_date)
+    if to_date:
+        sales = sales.filter(invoice_date__lte=to_date)
+
+    # الفلترة حسب اسم الدفعة
+    batch_name_id = request.GET.get('batch_name')
+    if batch_name_id:
+        sales = sales.filter(hatching__incubation__batch_entry__batch_name_id=batch_name_id)
+
+    # الفلترة حسب العميل
+    customer_id = request.GET.get('customer')
+    if customer_id:
+        sales = sales.filter(customer_id=customer_id)
+
+    # الفلترة حسب حالة الدفع
+    payment_status = request.GET.get('payment_status')
+    if payment_status:
+        if payment_status == 'paid':
+            sales = sales.filter(paid_amount__gte=F('quantity') * F('price_per_unit'))
+        elif payment_status == 'partially_paid':
+            sales = sales.filter(paid_amount__gt=0).exclude(paid_amount__gte=F('quantity') * F('price_per_unit'))
+        elif payment_status == 'unpaid':
+            sales = sales.filter(paid_amount=0)
 
     # الحصول على الدفعات التي لديها كتاكيت فرزة متاحة للبيع
     available_hatchings = BatchHatching.objects.filter(
@@ -384,9 +626,53 @@ def culled_sale_list(request):
     # تصفية الدفعات التي لديها فرزة متاحة للبيع
     available_hatchings = [h for h in available_hatchings if h.available_culled_count > 0]
 
+    # إعداد قائمة الفلاتر
+    batch_names = BatchName.objects.filter(is_active=True).order_by('name')
+    customers = Customer.objects.filter(is_active=True).order_by('name')
+
+    sale_filters = [
+        {
+            'name': 'batch_name',
+            'label': 'اسم الدفعة',
+            'type': 'select',
+            'options': batch_names,
+            'value': batch_name_id
+        },
+        {
+            'name': 'customer',
+            'label': 'العميل',
+            'type': 'select',
+            'options': customers,
+            'value': customer_id
+        },
+        {
+            'name': 'payment_status',
+            'label': 'حالة الدفع',
+            'type': 'select',
+            'options': [('paid', 'مدفوع بالكامل'), ('partially_paid', 'مدفوع جزئياً'), ('unpaid', 'غير مدفوع')],
+            'value': payment_status
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/culled_sale_list_print.html', {
+            'sales': sales,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+
     return render(request, 'hatchery/culled_sale_list.html', {
         'sales': sales,
-        'available_hatchings': available_hatchings
+        'available_hatchings': available_hatchings,
+        'sale_filters': sale_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
     })
 
 @login_required
@@ -501,7 +787,70 @@ def disinfectant_category_delete(request, pk):
 def disinfectant_inventory_list(request):
     """عرض قائمة مخزون المطهرات"""
     inventory_items = DisinfectantInventory.objects.all().order_by('category', 'name')
-    return render(request, 'hatchery/disinfectant_inventory_list.html', {'inventory_items': inventory_items})
+
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        inventory_items = inventory_items.filter(
+            Q(name__icontains=search_query) |
+            Q(supplier__icontains=search_query) |
+            Q(category__name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # الفلترة حسب التصنيف
+    category_id = request.GET.get('category')
+    if category_id:
+        inventory_items = inventory_items.filter(category_id=category_id)
+
+    # الفلترة حسب حالة المخزون
+    stock_status = request.GET.get('stock_status')
+    if stock_status == 'low':
+        inventory_items = inventory_items.filter(current_stock__lte=F('minimum_stock'))
+    elif stock_status == 'normal':
+        inventory_items = inventory_items.filter(current_stock__gt=F('minimum_stock'))
+
+    # إعداد قائمة الفلاتر
+    categories = DisinfectantCategory.objects.all().order_by('name')
+
+    inventory_filters = [
+        {
+            'name': 'category',
+            'label': 'التصنيف',
+            'type': 'select',
+            'options': categories,
+            'value': category_id
+        },
+        {
+            'name': 'stock_status',
+            'label': 'حالة المخزون',
+            'type': 'select',
+            'options': [
+                {'id': 'low', 'name': 'منخفض'},
+                {'id': 'normal', 'name': 'طبيعي'}
+            ],
+            'value': stock_status
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/disinfectant_inventory_list_print.html', {
+            'inventory_items': inventory_items,
+            'current_datetime': timezone.now(),
+            'search_query': search_query
+        })
+    elif export_type == 'excel':
+        return export_disinfectant_inventory_excel(inventory_items)
+    elif export_type == 'pdf':
+        return export_disinfectant_inventory_pdf(inventory_items)
+
+    return render(request, 'hatchery/disinfectant_inventory_list.html', {
+        'inventory_items': inventory_items,
+        'inventory_filters': inventory_filters,
+        'search_query': search_query
+    })
 
 @login_required
 def disinfectant_inventory_create(request):
@@ -565,7 +914,94 @@ def disinfectant_inventory_delete(request, pk):
 def disinfectant_transaction_list(request):
     """عرض قائمة حركات المطهرات"""
     transactions = DisinfectantTransaction.objects.all().order_by('-transaction_date')
-    return render(request, 'hatchery/disinfectant_transaction_list.html', {'transactions': transactions})
+
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        transactions = transactions.filter(
+            Q(disinfectant__name__icontains=search_query) |
+            Q(disinfectant__category__name__icontains=search_query) |
+            Q(notes__icontains=search_query)
+        )
+
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        transactions = transactions.filter(transaction_date__gte=from_date)
+    if to_date:
+        transactions = transactions.filter(transaction_date__lte=to_date)
+
+    # الفلترة حسب نوع الحركة
+    transaction_type = request.GET.get('transaction_type')
+    if transaction_type:
+        transactions = transactions.filter(transaction_type=transaction_type)
+
+    # الفلترة حسب المطهر
+    disinfectant_id = request.GET.get('disinfectant')
+    if disinfectant_id:
+        transactions = transactions.filter(disinfectant_id=disinfectant_id)
+
+    # الفلترة حسب التصنيف
+    category_id = request.GET.get('category')
+    if category_id:
+        transactions = transactions.filter(disinfectant__category_id=category_id)
+
+    # إعداد قائمة الفلاتر
+    disinfectants = DisinfectantInventory.objects.all().order_by('name')
+    categories = DisinfectantCategory.objects.all().order_by('name')
+
+    transaction_filters = [
+        {
+            'name': 'transaction_type',
+            'label': 'نوع الحركة',
+            'type': 'select',
+            'options': [
+                {'id': 'receive', 'name': 'استلام'},
+                {'id': 'dispense', 'name': 'صرف'}
+            ],
+            'value': transaction_type
+        },
+        {
+            'name': 'disinfectant',
+            'label': 'المطهر',
+            'type': 'select',
+            'options': disinfectants,
+            'value': disinfectant_id
+        },
+        {
+            'name': 'category',
+            'label': 'التصنيف',
+            'type': 'select',
+            'options': categories,
+            'value': category_id
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        return render(request, 'hatchery/disinfectant_transaction_list_print.html', {
+            'transactions': transactions,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+    elif export_type == 'excel':
+        return export_disinfectant_transaction_excel(transactions)
+    elif export_type == 'pdf':
+        return export_disinfectant_transaction_pdf(transactions)
+
+    return render(request, 'hatchery/disinfectant_transaction_list.html', {
+        'transactions': transactions,
+        'transaction_filters': transaction_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
+    })
 
 @login_required
 def disinfectant_transaction_create(request, disinfectant_id=None, transaction_type=None):
@@ -669,15 +1105,84 @@ def distribution_list(request):
     """عرض قائمة توزيعات الدفعات"""
     distributions = BatchDistribution.objects.all().order_by('-distribution_date')
 
+    # البحث
+    search_query = request.GET.get('q')
+    if search_query:
+        distributions = distributions.filter(
+            Q(hatching__incubation__batch_entry__batch_name__name__icontains=search_query) |
+            Q(notes__icontains=search_query) |
+            Q(distribution_items__customer__name__icontains=search_query)
+        ).distinct()
+
+    # الفلترة حسب التاريخ
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    if from_date:
+        distributions = distributions.filter(distribution_date__gte=from_date)
+    if to_date:
+        distributions = distributions.filter(distribution_date__lte=to_date)
+
+    # الفلترة حسب اسم الدفعة
+    batch_name_id = request.GET.get('batch_name')
+    if batch_name_id:
+        distributions = distributions.filter(hatching__incubation__batch_entry__batch_name_id=batch_name_id)
+
+    # الفلترة حسب العميل
+    customer_id = request.GET.get('customer')
+    if customer_id:
+        distributions = distributions.filter(distribution_items__customer_id=customer_id).distinct()
+
     # الحصول على الدفعات التي خرجت اليوم
     today = timezone.now().date()
     today_hatchings = BatchHatching.objects.filter(
         hatch_date=today
     ).order_by('-hatch_date')
 
+    # إعداد قائمة الفلاتر
+    batch_names = BatchName.objects.filter(is_active=True).order_by('name')
+    customers = Customer.objects.filter(is_active=True).order_by('name')
+
+    distribution_filters = [
+        {
+            'name': 'batch_name',
+            'label': 'اسم الدفعة',
+            'type': 'select',
+            'options': batch_names,
+            'value': batch_name_id
+        },
+        {
+            'name': 'customer',
+            'label': 'العميل',
+            'type': 'select',
+            'options': customers,
+            'value': customer_id
+        }
+    ]
+
+    # التحقق من نوع الطلب (عرض عادي أو تصدير)
+    export_type = request.GET.get('export')
+    if export_type == 'print':
+        # الحصول على عناصر التوزيع لكل توزيع
+        for distribution in distributions:
+            distribution.items = distribution.distribution_items.all()
+
+        return render(request, 'hatchery/distribution_list_print.html', {
+            'distributions': distributions,
+            'current_datetime': timezone.now(),
+            'search_query': search_query,
+            'from_date': from_date,
+            'to_date': to_date
+        })
+
     return render(request, 'hatchery/distribution_list.html', {
         'distributions': distributions,
-        'today_hatchings': today_hatchings
+        'today_hatchings': today_hatchings,
+        'distribution_filters': distribution_filters,
+        'search_query': search_query,
+        'from_date': from_date,
+        'to_date': to_date,
+        'date_filter': True
     })
 
 @login_required
@@ -808,7 +1313,16 @@ def incubation_api(request, pk):
     except BatchIncubation.DoesNotExist:
         return JsonResponse({'error': 'Incubation not found'}, status=404)
 
-# Daily Report view
+# Reports views
+@login_required
+def reports_home(request):
+    """الصفحة الرئيسية للتقارير"""
+    context = {
+        'today': timezone.now().date()
+    }
+    return render(request, 'hatchery/reports_home.html', context)
+
+
 @login_required
 def daily_report(request):
     """عرض التقرير اليومي"""
@@ -822,10 +1336,21 @@ def daily_report(request):
     else:
         report_date = timezone.now().date()
 
-    # الدفعات الواردة المسجلة اليوم (بغض النظر عن تاريخ الدخول)
-    today_entries = BatchEntry.objects.filter(
-        created_at__date=report_date
-    ).order_by('-date')
+    # استرجاع إعدادات الطباعة
+    settings = get_print_settings(request)
+    show_created_today = settings['show_created_today'] == '1'
+
+    # الدفعات الواردة المسجلة اليوم
+    if show_created_today:
+        # عرض الدفعات التي تم تسجيلها اليوم بغض النظر عن تاريخ الدخول
+        today_entries = BatchEntry.objects.filter(
+            created_at__date=report_date
+        ).order_by('-date')
+    else:
+        # عرض الدفعات التي تاريخ دخولها هو اليوم فقط
+        today_entries = BatchEntry.objects.filter(
+            date=report_date
+        ).order_by('-date')
 
     # الدفعات التي تم تسكينها اليوم
     today_incubations = BatchIncubation.objects.filter(
@@ -912,17 +1437,19 @@ def daily_report(request):
     # التحقق من نوع الطلب (عرض عادي أو تصدير)
     export_type = request.GET.get('export')
     if export_type == 'excel':
-        return export_daily_report_excel(context)
+        return export_daily_report_excel(context, request=request)
     elif export_type == 'pdf':
-        return export_daily_report_pdf(context)
+        return export_daily_report_pdf(context, request=request)
     elif export_type == 'print':
         # إضافة التاريخ والوقت الحاليين إلى السياق
         context['current_datetime'] = timezone.now()
 
         # إضافة إعدادات الطباعة إلى السياق
-        context['show_created_today'] = request.GET.get('show_created_today') == '1'
-        context['show_price_in_distribution'] = request.GET.get('show_price_in_distribution') == '1'
-        context['show_price_in_culled_sales'] = request.GET.get('show_price_in_culled_sales') == '1'
+        settings = get_print_settings(request)
+        context['show_created_today'] = settings['show_created_today'] == '1'
+        context['show_price_in_distribution'] = settings['show_price_in_distribution'] == '1'
+        context['show_price_in_culled_sales'] = settings['show_price_in_culled_sales'] == '1'
+        context['hide_empty_sections'] = settings['hide_empty_sections'] == '1'
 
         # حساب إجمالي المبلغ المدفوع من مبيعات الفرزة
         context['total_culled_sales_paid'] = today_culled_sales.aggregate(total=Sum('paid_amount'))['total'] or 0
@@ -932,8 +1459,16 @@ def daily_report(request):
     return render(request, 'hatchery/daily_report.html', context)
 
 
-def export_daily_report_excel(context):
+def export_daily_report_excel(context, request=None):
     """تصدير التقرير اليومي بصيغة Excel"""
+    # استرجاع إعدادات الطباعة
+    settings = get_print_settings(request) if request else {
+        'show_created_today': '1',
+        'hide_empty_sections': '0',
+        'show_price_in_distribution': '0',
+        'show_price_in_culled_sales': '1',
+    }
+
     # إنشاء ملف Excel في الذاكرة
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
@@ -1216,546 +1751,318 @@ def export_daily_report_excel(context):
     return response
 
 
-def export_daily_report_pdf(context):
+@login_required
+def print_settings(request):
+    """صفحة إعدادات الطباعة والتصدير"""
+    # استرجاع الإعدادات المحفوظة من الجلسة
+    saved_settings = request.session.get('print_settings', {})
+
+    if request.method == 'POST':
+        form = PrintSettingsForm(request.POST)
+        if form.is_valid():
+            # حفظ الإعدادات في الجلسة
+            settings_data = {
+                'show_created_today': '1' if form.cleaned_data['show_created_today'] else '0',
+                'hide_empty_sections': '1' if form.cleaned_data['hide_empty_sections'] else '0',
+                'show_price_in_distribution': '1' if form.cleaned_data['show_price_in_distribution'] else '0',
+                'show_price_in_culled_sales': '1' if form.cleaned_data['show_price_in_culled_sales'] else '0',
+            }
+            request.session['print_settings'] = settings_data
+            messages.success(request, 'تم حفظ إعدادات الطباعة بنجاح')
+
+            # إعادة توجيه المستخدم إلى الصفحة السابقة إذا كانت موجودة
+            next_url = request.POST.get('next', 'hatchery:reports')
+            return redirect(next_url)
+    else:
+        # تعبئة النموذج بالإعدادات المحفوظة
+        initial_data = {
+            'show_created_today': saved_settings.get('show_created_today') == '1',
+            'hide_empty_sections': saved_settings.get('hide_empty_sections') == '1',
+            'show_price_in_distribution': saved_settings.get('show_price_in_distribution') == '1',
+            'show_price_in_culled_sales': saved_settings.get('show_price_in_culled_sales') == '1',
+        }
+        form = PrintSettingsForm(initial=initial_data)
+
+    return render(request, 'hatchery/print_settings.html', {
+        'form': form,
+        'next': request.GET.get('next', 'hatchery:reports')
+    })
+
+
+def get_print_settings(request):
+    """استرجاع إعدادات الطباعة من الجلسة فقط"""
+    # استرجاع الإعدادات المحفوظة من الجلسة
+    saved_settings = request.session.get('print_settings', {})
+
+    # استخدام الإعدادات المحفوظة فقط مع القيم الافتراضية إذا لم تكن موجودة
+    settings = {
+        'show_created_today': saved_settings.get('show_created_today', '1'),
+        'hide_empty_sections': saved_settings.get('hide_empty_sections', '0'),
+        'show_price_in_distribution': saved_settings.get('show_price_in_distribution', '0'),
+        'show_price_in_culled_sales': saved_settings.get('show_price_in_culled_sales', '1'),
+    }
+
+    return settings
+
+
+def export_daily_report_pdf(context, request=None):
     """تصدير التقرير اليومي بصيغة PDF"""
-    # إضافة التاريخ والوقت الحاليين إلى السياق
-    context['current_datetime'] = timezone.now()
+    # بدلاً من استخدام مكتبات خارجية لتحويل HTML إلى PDF،
+    # سنقوم بإعادة توجيه المستخدم إلى صفحة الطباعة مع معلمة إضافية لتنزيل PDF تلقائيًا
 
-    # إعداد ملف PDF
-    response = HttpResponse(content_type='application/pdf')
-    filename = f'daily_report_{context["report_date"].strftime("%Y-%m-%d")}.pdf'
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    # إنشاء عنوان URL لصفحة الطباعة مع المعلمات المطلوبة
+    print_url = f"/hatchery/reports/daily/?date={context['report_date'].strftime('%Y-%m-%d')}&export=print&auto_download_pdf=1"
 
-    # إنشاء مستند PDF بالاتجاه الأفقي
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=landscape(A4),
-        rightMargin=30,
-        leftMargin=30,
-        topMargin=30,
-        bottomMargin=30
+    # إعادة توجيه المستخدم إلى صفحة الطباعة - سيتم استخدام الإعدادات المحفوظة في الجلسة تلقائيًا
+    return redirect(print_url)
+
+
+def export_disinfectant_inventory_excel(inventory_items):
+    """تصدير مخزون المطهرات بصيغة Excel"""
+    # إنشاء ملف Excel في الذاكرة
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet('مخزون المطهرات')
+
+    # تعيين اتجاه الورقة من اليمين إلى اليسار
+    worksheet.right_to_left()
+
+    # تنسيق العناوين
+    header_format = workbook.add_format({
+        'bold': True,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1
+    })
+
+    # تنسيق البيانات
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1
+    })
+
+    # تنسيق الخلايا الرقمية
+    number_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'num_format': '#,##0.00'
+    })
+
+    # تنسيق حالة المخزون
+    low_stock_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'bg_color': '#FF9999'
+    })
+
+    normal_stock_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'bg_color': '#99FF99'
+    })
+
+    # العناوين
+    headers = [
+        'ملاحظات',
+        'حالة المخزون',
+        'الحد الأدنى',
+        'المخزون الحالي',
+        'وحدة القياس',
+        'المورد',
+        'اسم المطهر',
+        'التصنيف'
+    ]
+
+    # كتابة العناوين
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header, header_format)
+
+    # كتابة البيانات
+    for row, item in enumerate(inventory_items, start=1):
+        # تقريب الأرقام إذا كانت الأرقام بعد الفاصلة أصفار
+        current_stock = float(item.current_stock)
+        minimum_stock = float(item.minimum_stock)
+
+        # التحقق مما إذا كان الرقم صحيحًا
+        if current_stock == int(current_stock):
+            current_stock = int(current_stock)
+        if minimum_stock == int(minimum_stock):
+            minimum_stock = int(minimum_stock)
+
+        worksheet.write(row, 0, item.notes or '-', cell_format)
+
+        # حالة المخزون
+        if item.is_low_stock:
+            worksheet.write(row, 1, 'منخفض', low_stock_format)
+        else:
+            worksheet.write(row, 1, 'طبيعي', normal_stock_format)
+
+        worksheet.write(row, 2, minimum_stock, number_format)
+        worksheet.write(row, 3, current_stock, number_format)
+        worksheet.write(row, 4, item.unit, cell_format)
+        worksheet.write(row, 5, item.supplier or '-', cell_format)
+        worksheet.write(row, 6, item.name, cell_format)
+        worksheet.write(row, 7, item.category.name, cell_format)
+
+    # ضبط عرض الأعمدة
+    for col in range(len(headers)):
+        worksheet.set_column(col, col, 20)
+
+    # إغلاق الملف
+    workbook.close()
+
+    # إعادة مؤشر الملف إلى البداية
+    output.seek(0)
+
+    # إنشاء استجابة HTTP مع ملف Excel
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-
-    # إنشاء قائمة العناصر
-    elements = []
-
-    # إنشاء أنماط النص
-    styles = getSampleStyleSheet()
-
-    # إنشاء أنماط النص العربي باستخدام الخطوط المدمجة
-    arabic_style = ParagraphStyle(
-        'ArabicStyle',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        alignment=2,  # تحاذي يمين
-        fontSize=14,
-        leading=16,
-        spaceAfter=10
-    )
-
-    arabic_title_style = ParagraphStyle(
-        'ArabicTitleStyle',
-        parent=styles['Heading1'],
-        fontName='Helvetica-Bold',
-        alignment=1,  # وسط
-        fontSize=20,
-        leading=24,
-        spaceAfter=12,
-        backColor='#2c3e50',
-        textColor='white'
-    )
-
-    arabic_subtitle_style = ParagraphStyle(
-        'ArabicSubtitleStyle',
-        parent=styles['Heading2'],
-        fontName='Helvetica-Bold',
-        alignment=1,  # وسط
-        fontSize=16,
-        leading=18,
-        spaceAfter=10,
-        backColor='#3498db',
-        textColor='white'
-    )
-
-    # إضافة عنوان التقرير
-    title_text = arabic_reshaper.reshape(f"التقرير اليومي - {context['report_date'].strftime('%Y-%m-%d')}")
-    title_text = get_display(title_text)
-    elements.append(Paragraph(title_text, arabic_title_style))
-    elements.append(Spacer(1, 20))
-
-    # إضافة الدفعات الواردة
-    if context.get('today_entries'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("الدفعات الواردة المسجلة اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("اسم الدفعة")),
-                get_display(arabic_reshaper.reshape("تاريخ الدخول")),
-                get_display(arabic_reshaper.reshape("الكمية")),
-                get_display(arabic_reshaper.reshape("اسم السائق")),
-                get_display(arabic_reshaper.reshape("ملاحظات"))
-            ]
-        ]
-
-        # إضافة بيانات الدفعات
-        for entry in context.get('today_entries', []):
-            row = [
-                get_display(arabic_reshaper.reshape(entry.batch_name.name)),
-                get_display(arabic_reshaper.reshape(entry.date.strftime('%Y-%m-%d'))),
-                str(entry.quantity),
-                get_display(arabic_reshaper.reshape(entry.driver or '-')),
-                get_display(arabic_reshaper.reshape(entry.notes or '-'))
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[150, 100, 80, 120, 200])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد دفعات واردة مسجلة اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة الدفعات المسكنة
-    if context.get('today_incubations'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("الدفعات التي تم تسكينها اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("اسم الدفعة")),
-                get_display(arabic_reshaper.reshape("تاريخ التسكين")),
-                get_display(arabic_reshaper.reshape("الكمية")),
-                get_display(arabic_reshaper.reshape("الفاقد")),
-                get_display(arabic_reshaper.reshape("تاريخ الخروج المتوقع"))
-            ]
-        ]
-
-        # إضافة بيانات الدفعات المسكنة
-        for incubation in context.get('today_incubations', []):
-            row = [
-                get_display(arabic_reshaper.reshape(incubation.batch_entry.batch_name.name)),
-                get_display(arabic_reshaper.reshape(incubation.incubation_date.strftime('%Y-%m-%d'))),
-                str(incubation.incubation_quantity),
-                str(incubation.damaged_quantity or 0),
-                get_display(arabic_reshaper.reshape(incubation.expected_hatch_date.strftime('%Y-%m-%d')))
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[150, 100, 80, 80, 120])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد دفعات تم تسكينها اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة الدفعات الخارجة
-    if context.get('today_hatchings'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("الدفعات التي خرجت اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("اسم الدفعة")),
-                get_display(arabic_reshaper.reshape("تاريخ الوارد")),
-                get_display(arabic_reshaper.reshape("تاريخ الخروج")),
-                get_display(arabic_reshaper.reshape("الكتاكيت")),
-                get_display(arabic_reshaper.reshape("الفرزة")),
-                get_display(arabic_reshaper.reshape("الفاطس")),
-                get_display(arabic_reshaper.reshape("المعدم")),
-                get_display(arabic_reshaper.reshape("نسبة الإخصاب")),
-                get_display(arabic_reshaper.reshape("نسبة الفقس"))
-            ]
-        ]
-
-        # إضافة بيانات الدفعات الخارجة
-        for hatching in context.get('today_hatchings', []):
-            row = [
-                get_display(arabic_reshaper.reshape(hatching.incubation.batch_entry.batch_name.name)),
-                get_display(arabic_reshaper.reshape(hatching.incubation.batch_entry.date.strftime('%Y-%m-%d'))),
-                get_display(arabic_reshaper.reshape(hatching.hatch_date.strftime('%Y-%m-%d'))),
-                str(hatching.chicks_count),
-                str(hatching.culled_count),
-                str(hatching.dead_count),
-                str(hatching.wasted_count),
-                f"{hatching.fertility_rate}%",
-                f"{hatching.hatch_rate}%"
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[100, 70, 70, 60, 60, 60, 60, 70, 70])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد دفعات خرجت اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة توزيعات الدفعات
-    if context.get('today_distributions'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("توزيعات الدفعات اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("اسم الدفعة")),
-                get_display(arabic_reshaper.reshape("تاريخ التوزيع")),
-                get_display(arabic_reshaper.reshape("الكتاكيت الموزعة")),
-                get_display(arabic_reshaper.reshape("عدد العملاء")),
-                get_display(arabic_reshaper.reshape("المبلغ المدفوع"))
-            ]
-        ]
-
-        # إضافة بيانات التوزيعات
-        for distribution in context.get('today_distributions', []):
-            row = [
-                get_display(arabic_reshaper.reshape(distribution.hatching.incubation.batch_entry.batch_name.name)),
-                get_display(arabic_reshaper.reshape(distribution.distribution_date.strftime('%Y-%m-%d'))),
-                str(distribution.total_distributed_count),
-                str(distribution.distribution_items.count()),
-                str(distribution.total_paid_amount)
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[150, 100, 100, 100, 100])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد توزيعات دفعات اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة المطهرات الواردة
-    if context.get('today_received_disinfectants'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("المطهرات الواردة اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("المطهر")),
-                get_display(arabic_reshaper.reshape("التصنيف")),
-                get_display(arabic_reshaper.reshape("الكمية")),
-                get_display(arabic_reshaper.reshape("وحدة القياس")),
-                get_display(arabic_reshaper.reshape("ملاحظات"))
-            ]
-        ]
-
-        # إضافة بيانات المطهرات الواردة
-        for transaction in context.get('today_received_disinfectants', []):
-            row = [
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.name)),
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.category.name)),
-                str(transaction.quantity),
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.unit)),
-                get_display(arabic_reshaper.reshape(transaction.notes or '-'))
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[120, 120, 80, 100, 150])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد مطهرات واردة اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة المطهرات المنصرفة
-    if context.get('today_dispensed_disinfectants'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("المطهرات المنصرفة اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("المطهر")),
-                get_display(arabic_reshaper.reshape("التصنيف")),
-                get_display(arabic_reshaper.reshape("الكمية")),
-                get_display(arabic_reshaper.reshape("وحدة القياس")),
-                get_display(arabic_reshaper.reshape("ملاحظات"))
-            ]
-        ]
-
-        # إضافة بيانات المطهرات المنصرفة
-        for transaction in context.get('today_dispensed_disinfectants', []):
-            row = [
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.name)),
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.category.name)),
-                str(transaction.quantity),
-                get_display(arabic_reshaper.reshape(transaction.disinfectant.unit)),
-                get_display(arabic_reshaper.reshape(transaction.notes or '-'))
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[120, 120, 80, 100, 150])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد مطهرات منصرفة اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة مبيعات الكتاكيت الفرزة
-    if context.get('today_culled_sales'):
-        # إضافة عنوان القسم
-        subtitle_text = arabic_reshaper.reshape("مبيعات الكتاكيت الفرزة اليوم")
-        subtitle_text = get_display(subtitle_text)
-        elements.append(Paragraph(subtitle_text, arabic_subtitle_style))
-
-        # إنشاء بيانات الجدول
-        table_data = [
-            [
-                get_display(arabic_reshaper.reshape("العميل")),
-                get_display(arabic_reshaper.reshape("الدفعة")),
-                get_display(arabic_reshaper.reshape("الكمية")),
-                get_display(arabic_reshaper.reshape("السعر")),
-                get_display(arabic_reshaper.reshape("الإجمالي")),
-                get_display(arabic_reshaper.reshape("المدفوع"))
-            ]
-        ]
-
-        # إضافة بيانات مبيعات الفرزة
-        for sale in context.get('today_culled_sales', []):
-            row = [
-                get_display(arabic_reshaper.reshape(sale.customer.name)),
-                get_display(arabic_reshaper.reshape(sale.hatching.incubation.batch_entry.batch_name.name)),
-                str(sale.quantity),
-                str(sale.price_per_unit),
-                str(sale.total_amount),
-                str(sale.paid_amount)
-            ]
-            table_data.append(row)
-
-        # إنشاء الجدول
-        table = Table(table_data, colWidths=[120, 120, 80, 80, 100, 100])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('FONTSIZE', (0, 1), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-
-        elements.append(table)
-        elements.append(Spacer(1, 20))
-    else:
-        # إضافة رسالة فارغة
-        empty_text = arabic_reshaper.reshape("لا توجد مبيعات كتاكيت فرزة اليوم")
-        empty_text = get_display(empty_text)
-        empty_style = ParagraphStyle(
-            'EmptyStyle',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            alignment=1,  # وسط
-            fontSize=14,
-            leading=16,
-            spaceAfter=10,
-            textColor='#7f8c8d'
-        )
-        elements.append(Paragraph(empty_text, empty_style))
-        elements.append(Spacer(1, 20))
-
-    # إضافة تذييل التقرير
-    footer_text = arabic_reshaper.reshape(f"تم إنشاء هذا التقرير بواسطة نظام إدارة معامل التفريخ - {context['current_datetime'].strftime('%Y-%m-%d %H:%M')}")
-    footer_text = get_display(footer_text)
-    footer_style = ParagraphStyle(
-        'FooterStyle',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        alignment=1,  # وسط
-        fontSize=12,
-        leading=14,
-        textColor='#555555',
-        backColor='#f8f9fa',
-        borderPadding=10,
-        borderWidth=1,
-        borderColor='#3498db',
-        borderRadius=5
-    )
-    elements.append(Paragraph(footer_text, footer_style))
-
-    # بناء المستند
-    doc.build(elements)
-
-    # إرجاع الاستجابة
-    pdf_data = buffer.getvalue()
-    buffer.close()
-    response.write(pdf_data)
+    response['Content-Disposition'] = 'attachment; filename=disinfectant_inventory.xlsx'
 
     return response
 
 
+def export_disinfectant_inventory_pdf(inventory_items):
+    """تصدير مخزون المطهرات بصيغة PDF"""
+    # بدلاً من استخدام مكتبات خارجية لتحويل HTML إلى PDF،
+    # سنقوم بإعادة توجيه المستخدم إلى صفحة الطباعة مع معلمة إضافية لتنزيل PDF تلقائيًا
 
+    # إنشاء عنوان URL لصفحة الطباعة مع المعلمات المطلوبة
+    print_url = "/hatchery/disinfectant-inventory/?export=print&auto_download_pdf=1"
+
+    # إضافة معلمات البحث والفلترة إذا كانت موجودة
+    # (هذا سيتم تنفيذه في المستقبل عند الحاجة)
+
+    # إعادة توجيه المستخدم إلى صفحة الطباعة
+    return redirect(print_url)
+
+
+def export_disinfectant_transaction_excel(transactions):
+    """تصدير حركات المطهرات بصيغة Excel"""
+    # إنشاء ملف Excel في الذاكرة
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet('حركات المطهرات')
+
+    # تعيين اتجاه الورقة من اليمين إلى اليسار
+    worksheet.right_to_left()
+
+    # تنسيق العناوين
+    header_format = workbook.add_format({
+        'bold': True,
+        'align': 'center',
+        'valign': 'vcenter',
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1
+    })
+
+    # تنسيق البيانات
+    cell_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1
+    })
+
+    # تنسيق الخلايا الرقمية
+    number_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'num_format': '#,##0.00'
+    })
+
+    # تنسيق نوع الحركة
+    receive_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'bg_color': '#99FF99'
+    })
+
+    dispense_format = workbook.add_format({
+        'align': 'center',
+        'valign': 'vcenter',
+        'border': 1,
+        'bg_color': '#FFCC99'
+    })
+
+    # العناوين
+    headers = [
+        'ملاحظات',
+        'وحدة القياس',
+        'الكمية',
+        'نوع الحركة',
+        'التصنيف',
+        'المطهر',
+        'تاريخ الحركة'
+    ]
+
+    # كتابة العناوين
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header, header_format)
+
+    # كتابة البيانات
+    for row, transaction in enumerate(transactions, start=1):
+        # تقريب الأرقام إذا كانت الأرقام بعد الفاصلة أصفار
+        quantity = float(transaction.quantity)
+
+        # التحقق مما إذا كان الرقم صحيحًا
+        if quantity == int(quantity):
+            quantity = int(quantity)
+
+        worksheet.write(row, 0, transaction.notes or '-', cell_format)
+        worksheet.write(row, 1, transaction.disinfectant.unit, cell_format)
+        worksheet.write(row, 2, quantity, number_format)
+
+        # نوع الحركة
+        if transaction.transaction_type == 'receive':
+            worksheet.write(row, 3, 'استلام', receive_format)
+        else:
+            worksheet.write(row, 3, 'صرف', dispense_format)
+
+        worksheet.write(row, 4, transaction.disinfectant.category.name, cell_format)
+        worksheet.write(row, 5, transaction.disinfectant.name, cell_format)
+        worksheet.write(row, 6, transaction.transaction_date.strftime('%Y-%m-%d'), cell_format)
+
+    # ضبط عرض الأعمدة
+    for col in range(len(headers)):
+        worksheet.set_column(col, col, 20)
+
+    # إغلاق الملف
+    workbook.close()
+
+    # إعادة مؤشر الملف إلى البداية
+    output.seek(0)
+
+    # إنشاء استجابة HTTP مع ملف Excel
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=disinfectant_transactions.xlsx'
+
+    return response
+
+
+def export_disinfectant_transaction_pdf(transactions):
+    """تصدير حركات المطهرات بصيغة PDF"""
+    # بدلاً من استخدام مكتبات خارجية لتحويل HTML إلى PDF،
+    # سنقوم بإعادة توجيه المستخدم إلى صفحة الطباعة مع معلمة إضافية لتنزيل PDF تلقائيًا
+
+    # إنشاء عنوان URL لصفحة الطباعة مع المعلمات المطلوبة
+    print_url = "/hatchery/disinfectant-transactions/?export=print&auto_download_pdf=1"
+
+    # إضافة معلمات البحث والفلترة إذا كانت موجودة
+    # (هذا سيتم تنفيذه في المستقبل عند الحاجة)
+
+    # إعادة توجيه المستخدم إلى صفحة الطباعة
+    return redirect(print_url)

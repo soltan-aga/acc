@@ -34,6 +34,51 @@
             page-break-before: always;
         }
     }
+
+    /* تنسيق إضافي للإحصائيات */
+    .stats-card {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .stats-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .stats-label {
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .stats-unit {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+
+    .section-title {
+        position: relative;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 3px;
+        background-color: #007bff;
+    }
 </style>
 {% endblock %}
 
@@ -50,8 +95,10 @@
                         </button>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=excel"><i class="fas fa-file-excel me-1 text-success"></i> Excel</a></li>
-                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=pdf"><i class="fas fa-file-pdf me-1 text-danger"></i> PDF</a></li>
-                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#printSettingsModal"><i class="fas fa-print me-1 text-primary"></i> صفحة طباعة</a></li>
+                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=pdf"><i class="fas fa-file-pdf me-1 text-danger"></i> تنزيل PDF</a></li>
+                            <li><a class="dropdown-item" href="?date={{ report_date|date:'Y-m-d' }}&export=print"><i class="fas fa-print me-1 text-primary"></i> صفحة طباعة</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'hatchery:print_settings' %}?next={{ request.path }}?date={{ report_date|date:'Y-m-d' }}"><i class="fas fa-cog me-1 text-secondary"></i> إعدادات الطباعة</a></li>
                         </ul>
                     </div>
 
@@ -65,88 +112,90 @@
                 <!-- ملخص الإحصائيات -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">ملخص الإحصائيات</h5>
-                        <div class="row">
+                        <h5 class="section-title">ملخص الإحصائيات</h5>
+                        <div class="row justify-content-center">
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-primary text-white">
+                                <div class="card stats-card bg-primary text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الدفعات الواردة</h5>
-                                        <h3>{{ total_entries_count }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الدفعات الواردة</h5>
+                                        <h3 class="stats-value text-center">{{ total_entries_count }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-success text-white">
+                                <div class="card stats-card bg-success text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الدفعات المسكنة</h5>
-                                        <h3>{{ total_incubations_count }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الدفعات المسكنة</h5>
+                                        <h3 class="stats-value text-center">{{ total_incubations_count }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-info text-white">
+                                <div class="card stats-card bg-info text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الدفعات الخارجة</h5>
-                                        <h3>{{ total_hatchings_count.total_chicks|default:"0" }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الدفعات الخارجة</h5>
+                                        <h3 class="stats-value text-center">{{ total_hatchings_count.total_chicks|default:"0" }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-warning text-dark">
+                                <div class="card stats-card bg-warning text-dark">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الكتاكيت الموزعة</h5>
-                                        <h3>{{ total_distributed_count }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الكتاكيت الموزعة</h5>
+                                        <h3 class="stats-value text-center">{{ total_distributed_count }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <div class="row justify-content-center">
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-danger text-white">
+                                <div class="card stats-card bg-danger text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الكتاكيت الفرزة</h5>
-                                        <h3>{{ total_hatchings_count.total_culled|default:"0" }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الكتاكيت الفرزة</h5>
+                                        <h3 class="stats-value text-center">{{ total_hatchings_count.total_culled|default:"0" }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-dark text-white">
+                                <div class="card stats-card bg-dark text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">المعدم</h5>
-                                        <h3>{{ total_hatchings_count.total_wasted|default:"0" }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">المعدم</h5>
+                                        <h3 class="stats-value text-center">{{ total_hatchings_count.total_wasted|default:"0" }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-secondary text-white">
+                                <div class="card stats-card bg-secondary text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">الفرزة المباعة</h5>
-                                        <h3>{{ total_culled_sales_count }}</h3>
-                                        <p class="mb-0">كتكوت</p>
+                                        <h5 class="stats-label text-center">الفرزة المباعة</h5>
+                                        <h3 class="stats-value text-center">{{ total_culled_sales_count }}</h3>
+                                        <p class="stats-unit mb-0 text-center">كتكوت</p>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-dark text-white">
+                                <div class="card stats-card bg-dark text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">إيرادات الفرزة</h5>
-                                        <h3>{{ total_culled_sales_amount }}</h3>
-                                        <p class="mb-0">جنيه</p>
+                                        <h5 class="stats-label text-center">إيرادات الفرزة</h5>
+                                        <h3 class="stats-value text-center">{{ total_culled_sales_amount }}</h3>
+                                        <p class="stats-unit mb-0 text-center">جنيه</p>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="row justify-content-center">
                             <div class="col-md-3 mb-3">
-                                <div class="card bg-primary text-white">
+                                <div class="card stats-card bg-primary text-white">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">إيرادات التوزيع</h5>
-                                        <h3>{{ total_distributions_amount }}</h3>
-                                        <p class="mb-0">جنيه</p>
+                                        <h5 class="stats-label text-center">إيرادات التوزيع</h5>
+                                        <h3 class="stats-value text-center">{{ total_distributions_amount }}</h3>
+                                        <p class="stats-unit mb-0 text-center">جنيه</p>
                                     </div>
                                 </div>
                             </div>
@@ -157,11 +206,11 @@
                 <!-- الدفعات الواردة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">الدفعات الواردة المسجلة اليوم</h5>
+                        <h5 class="section-title">الدفعات الواردة المسجلة اليوم</h5>
                         {% if today_entries %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>اسم الدفعة</th>
                                         <th>تاريخ الدخول</th>
@@ -193,11 +242,11 @@
                 <!-- الدفعات المسكنة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">الدفعات التي تم تسكينها اليوم</h5>
+                        <h5 class="section-title">الدفعات التي تم تسكينها اليوم</h5>
                         {% if today_incubations %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>اسم الدفعة</th>
                                         <th>تاريخ التسكين</th>
@@ -229,11 +278,11 @@
                 <!-- الدفعات الخارجة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">الدفعات التي خرجت اليوم</h5>
+                        <h5 class="section-title">الدفعات التي خرجت اليوم</h5>
                         {% if today_hatchings %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>اسم الدفعة</th>
                                         <th>تاريخ الخروج</th>
@@ -271,11 +320,11 @@
                 <!-- توزيعات الدفعات -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">توزيعات الدفعات اليوم</h5>
+                        <h5 class="section-title">توزيعات الدفعات اليوم</h5>
                         {% if today_distributions %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>اسم الدفعة</th>
                                         <th>تاريخ التوزيع</th>
@@ -307,11 +356,11 @@
                 <!-- المطهرات الواردة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">المطهرات الواردة اليوم</h5>
+                        <h5 class="section-title">المطهرات الواردة اليوم</h5>
                         {% if today_received_disinfectants %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>المطهر</th>
                                         <th>التصنيف</th>
@@ -343,11 +392,11 @@
                 <!-- المطهرات المنصرفة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">المطهرات المنصرفة اليوم</h5>
+                        <h5 class="section-title">المطهرات المنصرفة اليوم</h5>
                         {% if today_dispensed_disinfectants %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>المطهر</th>
                                         <th>التصنيف</th>
@@ -379,11 +428,11 @@
                 <!-- مبيعات الكتاكيت الفرزة -->
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <h5 class="card-title mb-3">مبيعات الكتاكيت الفرزة اليوم</h5>
+                        <h5 class="section-title">مبيعات الكتاكيت الفرزة اليوم</h5>
                         {% if today_culled_sales %}
                         <div class="table-container">
                             <table class="table table-hover">
-                                <thead>
+                                <thead class="table-light">
                                     <tr>
                                         <th>العميل</th>
                                         <th>الدفعة</th>
@@ -416,60 +465,6 @@
         </div>
     </div>
 </div>
-<!-- نافذة إعدادات الطباعة -->
-<div class="modal fade" id="printSettingsModal" tabindex="-1" aria-labelledby="printSettingsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="printSettingsModalLabel">إعدادات طباعة تقرير المعمل</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-            </div>
-            <div class="modal-body">
-                <form id="printSettingsForm" action="?date={{ report_date|date:'Y-m-d' }}&export=print" method="get">
-                    <input type="hidden" name="date" value="{{ report_date|date:'Y-m-d' }}">
-                    <input type="hidden" name="export" value="print">
 
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="show_created_today" name="show_created_today" value="1" checked>
-                                <label class="form-check-label" for="show_created_today">
-                                    إظهار الدفعات التي سجلت بتاريخ اليوم حتى لو كان تاريخ الدفعة لا يوافق تاريخ اليوم
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="show_price_in_distribution" name="show_price_in_distribution" value="1">
-                                <label class="form-check-label" for="show_price_in_distribution">
-                                    إظهار سعر الكتكوت في التوزيعة
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="show_price_in_culled_sales" name="show_price_in_culled_sales" value="1" checked>
-                                <label class="form-check-label" for="show_price_in_culled_sales">
-                                    إظهار سعر الكتكوت الفرزة والمدفوع والإجمالي
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('printSettingsForm').submit();">
-                    <i class="fas fa-print me-1"></i> طباعة التقرير
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- تم إزالة نافذة إعدادات الطباعة القديمة والاعتماد على صفحة الإعدادات الجديدة -->
 {% endblock %}

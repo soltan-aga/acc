@@ -268,3 +268,38 @@ BatchDistributionItemFormSet = inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+
+class PrintSettingsForm(forms.Form):
+    """نموذج إعدادات الطباعة والتصدير"""
+
+    # إعدادات عامة
+    show_created_today = forms.BooleanField(
+        label='إظهار الدفعات المسجلة اليوم بغض النظر عن تاريخ الدخول',
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
+    hide_empty_sections = forms.BooleanField(
+        label='إخفاء الأقسام التي لا توجد بها بيانات',
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
+    # إعدادات التوزيعات
+    show_price_in_distribution = forms.BooleanField(
+        label='إظهار سعر الكتكوت في التوزيعة',
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
+    # إعدادات مبيعات الفرزة
+    show_price_in_culled_sales = forms.BooleanField(
+        label='إظهار سعر الكتكوت الفرزة والمدفوع والإجمالي',
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )

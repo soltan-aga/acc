@@ -1,6 +1,14 @@
+/* Font Definitions */
+@font-face {
+    font-family: 'Cairo';
+    src: url('../fonts/Cairo-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Main Styles */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
 }
 
@@ -26,10 +34,6 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
     margin-bottom: 20px;
-}
-
-.card:hover {
-    transform: translateY(-5px);
 }
 
 .card-header {
@@ -68,11 +72,18 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    direction: rtl;
+    text-align: right;
 }
 
 .table th {
     background-color: #f8f9fa;
     font-weight: bold;
+    text-align: right;
+}
+
+.table td {
+    text-align: right;
 }
 
 .table-hover tbody tr:hover {

@@ -3,29 +3,42 @@
 
 {% block title %}قائمة خروج الدفعات - نظام إدارة معامل التفريخ{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
+<!-- فلاتر البحث -->
+{% include 'partials/_search_filters.html' with filter_title="فلاتر خروج الدفعات" filters=hatching_filters date_filter=True search_placeholder="اسم الدفعة، ملاحظات..." search_query=search_query from_date=from_date to_date=to_date %}
+
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0"><i class="fas fa-baby-carriage me-2"></i>قائمة خروج الدفعات</h4>
-                <div class="dropdown">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-plus me-1"></i> تسجيل خروج جديد
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
-                        {% for incubation in ready_incubations %}
-                        <li><a class="dropdown-item" href="{% url 'hatchery:hatching_create' incubation.id %}">{{ incubation.batch_entry.batch_name }} ({{ incubation.expected_hatch_date|date:"Y-m-d" }})</a></li>
-                        {% empty %}
-                        <li><a class="dropdown-item disabled" href="#">لا توجد دفعات جاهزة للخروج</a></li>
-                        {% endfor %}
-                    </ul>
+                <div class="d-flex">
+                    <a href="{% url 'hatchery:hatching_list' %}?export=print" target="_blank" class="btn btn-light me-2">
+                        <i class="fas fa-print me-1"></i> طباعة
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-plus me-1"></i> تسجيل خروج جديد
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                            {% for incubation in ready_incubations %}
+                            <li><a class="dropdown-item" href="{% url 'hatchery:hatching_create' incubation.id %}">{{ incubation.batch_entry.batch_name }} ({{ incubation.expected_hatch_date|date:"Y-m-d" }})</a></li>
+                            {% empty %}
+                            <li><a class="dropdown-item disabled" href="#">لا توجد دفعات جاهزة للخروج</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
                 {% if hatchings %}
                 <div class="table-container">
-                    <table class="table table-hover">
+                    <table id="hatchingsTable" class="table table-hover">
                         <thead>
                             <tr>
                                 <th>اسم الدفعة</th>
@@ -36,7 +49,7 @@
                                 <th>عدد المعدم</th>
                                 <th>نسبة الإخصاب</th>
                                 <th>نسبة الفقس</th>
-                                <th>الإجراءات</th>
+                                <th class="no-export">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -47,7 +60,7 @@
                                 <td>{{ hatching.chicks_count }}</td>
                                 <td>{{ hatching.culled_count }}</td>
                                 <td>{{ hatching.dead_count }}</td>
-                                <td>{{ hatching.wasted_count }}</td>
+                                <td>{{ hatching.damaged_count }}</td>
                                 <td>{{ hatching.fertility_rate }}%</td>
                                 <td>{{ hatching.hatch_rate }}%</td>
                                 <td>
@@ -59,6 +72,9 @@
                                     </a>
                                     <a href="{% url 'hatchery:hatching_delete' hatching.id %}" class="btn btn-sm btn-danger delete-confirm">
                                         <i class="fas fa-trash"></i>
+                                    </a>
+                                    <a href="{% url 'hatchery:distribution_create_specific' hatching.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-share-alt"></i> توزيع
                                     </a>
                                     <a href="{% url 'hatchery:culled_sale_create' hatching.id %}" class="btn btn-sm btn-success">
                                         <i class="fas fa-shopping-cart"></i> بيع فرزة
@@ -76,4 +92,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="{% static 'js/hatchery_print_export.js' %}"></script>
+
+<script>
+    $(document).ready(function() {
+        initDataTable('hatchingsTable', 1, 'desc');
+    });
+</script>
 {% endblock %}

@@ -79,6 +79,8 @@ urlpatterns = [
 
     # Reports URLs
     path('reports/daily/', views.daily_report, name='daily_report'),
+    path('reports/', views.reports_home, name='reports'),
+    path('settings/print/', views.print_settings, name='print_settings'),
 
     # API URLs
     path('api/incubation/<int:pk>/', views.incubation_api, name='incubation_api'),

@@ -3,20 +3,33 @@
 
 {% block title %}قائمة الدفعات - نظام إدارة معامل التفريخ{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+{% endblock %}
+
 {% block content %}
+<!-- فلاتر البحث -->
+{% include 'partials/_search_filters.html' with filter_title="فلاتر الدفعات" filters=batch_filters date_filter=True search_placeholder="اسم الدفعة، السائق..." search_query=search_query from_date=from_date to_date=to_date %}
+
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h4 class="mb-0"><i class="fas fa-egg me-2"></i>قائمة الدفعات</h4>
-                <a href="{% url 'hatchery:batch_create' %}" class="btn btn-light">
-                    <i class="fas fa-plus me-1"></i> إضافة دفعة جديدة
-                </a>
+                <div class="d-flex">
+                    <a href="{% url 'hatchery:batch_list' %}?export=print" target="_blank" class="btn btn-light me-2">
+                        <i class="fas fa-print me-1"></i> طباعة
+                    </a>
+                    <a href="{% url 'hatchery:batch_create' %}" class="btn btn-light">
+                        <i class="fas fa-plus me-1"></i> إضافة دفعة جديدة
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 {% if batches %}
                 <div class="table-container">
-                    <table class="table table-hover">
+                    <table id="batchesTable" class="table table-hover">
                         <thead>
                             <tr>
                                 <th>اسم الدفعة</th>
@@ -59,4 +72,23 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="{% static 'js/hatchery_print_export.js' %}"></script>
+
+<script>
+    $(document).ready(function() {
+        initDataTable('batchesTable', 1, 'desc');
+    });
+</script>
 {% endblock %}

@@ -6,21 +6,14 @@
     <title>التقرير اليومي - {{ report_date|date:"Y-m-d" }}</title>
     <style>
         @font-face {
-            font-family: 'Tajawal';
-            src: url('/static/fonts/Tajawal-Regular.ttf') format('truetype');
+            font-family: 'Cairo';
+            src: url('/static/fonts/Cairo-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
 
-        @font-face {
-            font-family: 'Tajawal';
-            src: url('/static/fonts/Tajawal-Bold.ttf') format('truetype');
-            font-weight: bold;
-            font-style: normal;
-        }
-
         body {
-            font-family: 'Tajawal', 'Cairo', 'Arial', sans-serif;
+            font-family: 'Cairo', 'Arial', sans-serif;
             direction: rtl;
             background-color: white;
             color: black;
@@ -280,7 +273,7 @@
         <button onclick="exportToPDF()" style="background-color: #e74c3c; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; margin-right: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
             <span style="margin-left: 5px;">&#128196;</span> تصدير PDF
         </button>
-        <a href="/hatchery/daily_report/?date={{ report_date|date:'Y-m-d' }}" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;">
+        <a href="/hatchery/reports/daily/?date={{ report_date|date:'Y-m-d' }}" style="background-color: #3498db; color: white; border: none; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;">
             <span style="margin-left: 5px;">&#8592;</span> العودة
         </a>
     </div>
@@ -295,6 +288,7 @@
     <!-- تم إزالة ملخص الإحصائيات بناءً على طلب المستخدم -->
 
     <!-- الدفعات الواردة -->
+    {% if today_entries or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">الدفعات الواردة المسجلة اليوم</div>
         {% if today_entries %}
@@ -324,8 +318,10 @@
         <div class="empty-message">لا توجد دفعات واردة مسجلة اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- الدفعات المسكنة -->
+    {% if today_incubations or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">الدفعات التي تم تسكينها اليوم</div>
         {% if today_incubations %}
@@ -355,8 +351,10 @@
         <div class="empty-message">لا توجد دفعات تم تسكينها اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- الدفعات الخارجة -->
+    {% if today_hatchings or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">الدفعات التي خرجت اليوم</div>
         {% if today_hatchings %}
@@ -394,8 +392,10 @@
         <div class="empty-message">لا توجد دفعات خرجت اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- توزيعات الدفعات -->
+    {% if today_distributions or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">توزيعات الدفعات اليوم</div>
         {% if today_distributions %}
@@ -453,8 +453,10 @@
         <div class="empty-message">لا توجد توزيعات دفعات اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- المطهرات الواردة -->
+    {% if today_received_disinfectants or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">المطهرات الواردة اليوم</div>
         {% if today_received_disinfectants %}
@@ -484,8 +486,10 @@
         <div class="empty-message">لا توجد مطهرات واردة اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- المطهرات المنصرفة -->
+    {% if today_dispensed_disinfectants or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">المطهرات المنصرفة اليوم</div>
         {% if today_dispensed_disinfectants %}
@@ -515,8 +519,10 @@
         <div class="empty-message">لا توجد مطهرات منصرفة اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
     <!-- مبيعات الكتاكيت الفرزة -->
+    {% if today_culled_sales or not hide_empty_sections %}
     <div class="print-section">
         <div class="print-section-title">مبيعات الكتاكيت الفرزة اليوم</div>
         {% if today_culled_sales %}
@@ -563,57 +569,146 @@
         <div class="empty-message">لا توجد مبيعات كتاكيت فرزة اليوم</div>
         {% endif %}
     </div>
+    {% endif %}
 
 
 </div>
 
 <script>
-    // إضافة مكتبات jsPDF و html2canvas
-    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>');
-    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>');
+    // سنقوم بتحميل المكتبات بطريقة أفضل بدلاً من استخدام document.write
+    function loadScript(url, callback) {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = url;
+        script.onload = callback;
+        document.head.appendChild(script);
+    }
+
+    // تحميل المكتبات بالتتابع
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', function() {
+        loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function() {
+            // بعد تحميل المكتبات، نتحقق من وجود معلمة auto_download_pdf
+            // التحقق من إعداد إخفاء الأقسام الفارغة
+            const hideEmptySections = getUrlParameter('hide_empty_sections') === '1';
+
+            if (getUrlParameter('auto_download_pdf') === '1') {
+                setTimeout(function() {
+                    exportToPDF();
+                }, 1500); // زيادة التأخير للتأكد من تحميل المكتبات بالكامل
+            }
+        });
+    });
+
+    // التحقق من وجود معلمة auto_download_pdf في عنوان URL
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
 
     // وظيفة تصدير التقرير إلى PDF
     function exportToPDF() {
+        // إظهار رسالة تحميل
+        const loadingMessage = document.createElement('div');
+        loadingMessage.style.position = 'fixed';
+        loadingMessage.style.top = '0';
+        loadingMessage.style.left = '0';
+        loadingMessage.style.width = '100%';
+        loadingMessage.style.height = '100%';
+        loadingMessage.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        loadingMessage.style.display = 'flex';
+        loadingMessage.style.justifyContent = 'center';
+        loadingMessage.style.alignItems = 'center';
+        loadingMessage.style.zIndex = '9999';
+        loadingMessage.style.color = 'white';
+        loadingMessage.style.fontSize = '24px';
+        loadingMessage.style.fontWeight = 'bold';
+        loadingMessage.innerHTML = 'جاري تحويل التقرير إلى PDF...';
+        document.body.appendChild(loadingMessage);
+
         // إخفاء أزرار التحكم قبل التصدير
         const controls = document.querySelector('.print-controls');
+        const originalDisplayStyle = controls.style.display;
         controls.style.display = 'none';
 
-        // تحويل الصفحة إلى صورة
-        html2canvas(document.body, {
+        // الحصول على عنصر المحتوى الذي نريد تحويله إلى PDF
+        const content = document.querySelector('.container');
+
+        // تحويل المحتوى إلى صورة
+        html2canvas(content, {
             scale: 2, // جودة أعلى
             useCORS: true,
             logging: false,
-            allowTaint: true
+            allowTaint: true,
+            backgroundColor: '#ffffff'
         }).then(function(canvas) {
-            // إعادة إظهار أزرار التحكم
-            controls.style.display = '';
+            try {
+                // إعادة إظهار أزرار التحكم
+                controls.style.display = originalDisplayStyle;
 
-            // إنشاء ملف PDF
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
+                // إنشاء ملف PDF
+                const { jsPDF } = window.jspdf;
 
-            // حساب نسبة العرض للصفحة
-            const imgWidth = 210; // عرض A4 بالملم
-            const imgHeight = canvas.height * imgWidth / canvas.width;
-            const imgData = canvas.toDataURL('image/png');
+                // استخدام اتجاه رأسي (portrait) للصفحة
+                const pdf = new jsPDF('p', 'mm', 'a4');
 
-            let heightLeft = imgHeight;
-            let position = 0;
+                // حساب نسبة العرض للصفحة
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
 
-            // إضافة الصفحة الأولى
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= 297; // طول A4 بالملم
+                const imgWidth = pageWidth - 20; // ترك هامش 10مم من كل جانب
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                const imgData = canvas.toDataURL('image/png');
 
-            // إضافة صفحات إضافية إذا كان التقرير طويلاً
-            while (heightLeft > 0) {
-                position = -297 * (imgHeight / heightLeft);
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= 297;
+                // لا نضيف عنوانًا في أعلى الصفحة
+
+                let heightLeft = imgHeight;
+                let position = 10; // بدء من 10مم من الأعلى
+
+                // إضافة الصفحة الأولى
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= (pageHeight - 30); // طول الصفحة ناقص الهوامش
+
+                // إضافة صفحات إضافية إذا كان التقرير طويلاً
+                let pageNumber = 1;
+                while (heightLeft > 0) {
+                    pageNumber++;
+                    position = -1 * (pageHeight - 30) * (pageNumber - 1) + 20;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+
+                    // لا نضيف أرقام صفحات
+
+                    heightLeft -= (pageHeight - 30);
+                }
+
+                // لا نضيف أرقام صفحات للصفحة الأولى
+
+                // تنزيل الملف
+                pdf.save(`تقرير_المعمل_{{ report_date|date:"Y-m-d" }}.pdf`);
+
+                // إزالة رسالة التحميل
+                document.body.removeChild(loadingMessage);
+            } catch (error) {
+                console.error('حدث خطأ أثناء إنشاء ملف PDF:', error);
+                alert('حدث خطأ أثناء إنشاء ملف PDF. يرجى المحاولة مرة أخرى.');
+
+                // إعادة إظهار أزرار التحكم
+                controls.style.display = originalDisplayStyle;
+
+                // إزالة رسالة التحميل
+                document.body.removeChild(loadingMessage);
             }
+        }).catch(function(error) {
+            console.error('حدث خطأ أثناء تحويل الصفحة إلى صورة:', error);
+            alert('حدث خطأ أثناء تحويل الصفحة إلى صورة. يرجى المحاولة مرة أخرى.');
 
-            // تنزيل الملف
-            pdf.save(`تقرير_المعمل_{{ report_date|date:"Y-m-d" }}.pdf`);
+            // إعادة إظهار أزرار التحكم
+            controls.style.display = originalDisplayStyle;
+
+            // إزالة رسالة التحميل
+            document.body.removeChild(loadingMessage);
         });
     }
 </script>

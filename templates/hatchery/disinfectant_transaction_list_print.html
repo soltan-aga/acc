@@ -1,0 +1,125 @@
+{% extends 'base/print_base.html' %}
+{% load static %}
+{% load hatchery_filters %}
+
+{% block title %}طباعة حركات المطهرات - نظام إدارة معامل التفريخ{% endblock %}
+
+{% block content %}
+<div class="container print-container" dir="rtl" style="text-align: right;">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h2 class="mb-0">قائمة حركات المطهرات</h2>
+            <p class="text-muted">تاريخ الطباعة: {{ current_datetime|date:"Y-m-d H:i" }}</p>
+            {% if search_query %}
+            <p class="text-muted">نتائج البحث عن: {{ search_query }}</p>
+            {% endif %}
+            {% if from_date or to_date %}
+            <p class="text-muted">
+                الفترة:
+                {% if from_date %}من {{ from_date }}{% endif %}
+                {% if to_date %} إلى {{ to_date }}{% endif %}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>ملاحظات</th>
+                            <th>الكمية</th>
+                            <th>نوع الحركة</th>
+                            <th>التصنيف</th>
+                            <th>المطهر</th>
+                            <th>تاريخ الحركة</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.notes|default:"-" }}</td>
+                            <td>{{ transaction.quantity|smart_number }} {{ transaction.disinfectant.unit }}</td>
+                            <td>
+                                {% if transaction.transaction_type == 'receive' %}
+                                <span class="text-success">استلام</span>
+                                {% else %}
+                                <span class="text-warning">صرف</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transaction.disinfectant.category.name }}</td>
+                            <td>{{ transaction.disinfectant.name }}</td>
+                            <td>{{ transaction.transaction_date }}</td>
+                            <td>{{ forloop.counter }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ملخص الحركات -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">ملخص الحركات</h5>
+                        </div>
+                        <div class="card-body">
+                            {% with receive_count=transactions|dictsortby:"transaction_type"|dictsort:"transaction_type"|first dispense_count=transactions|dictsortby:"transaction_type"|dictsort:"transaction_type"|last %}
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>إجمالي عمليات الاستلام:</th>
+                                        <td>{{ transactions|dictsort:"transaction_type"|first|length }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>إجمالي عمليات الصرف:</th>
+                                        <td>{{ transactions|dictsort:"transaction_type"|last|length }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>إجمالي الحركات:</th>
+                                        <td>{{ transactions.count }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> لا توجد حركات مطهرات مسجلة حالياً
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <p class="mb-0">عدد الحركات: {{ transactions.count }}</p>
+                </div>
+                <div>
+                    <p class="mb-0">توقيع المسؤول: ________________</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تنزيل PDF تلقائيًا إذا كان مطلوبًا
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto_download_pdf') === '1') {
+            window.print();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة قائمة تسكين الدفعات</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Tajawal', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+            text-align: right;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .info {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-item {
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #777;
+        }
+        .no-print {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .no-print button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Tajawal', 'Arial', sans-serif;
+        }
+        .no-print button.btn-danger {
+            background-color: #f44336;
+        }
+        .no-print button.btn-primary {
+            background-color: #2196F3;
+        }
+        .no-print button.btn-secondary {
+            background-color: #607d8b;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: white;
+        }
+        .status-ready {
+            background-color: #f44336;
+        }
+        .status-waiting {
+            background-color: #ff9800;
+        }
+        .status-hatched {
+            background-color: #4CAF50;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" class="btn-primary">طباعة</button>
+        <button onclick="exportToPDF()" class="btn-danger">تصدير PDF</button>
+        <button onclick="exportToExcel()" class="btn-success">تصدير إكسل</button>
+        <button onclick="window.close()" class="btn-secondary">إغلاق</button>
+    </div>
+
+    <div class="print-container">
+        <div class="header">
+            <h1>قائمة تسكين الدفعات</h1>
+            <p>تاريخ التقرير: {{ current_datetime|date:"Y-m-d" }}</p>
+            {% if search_query %}
+            <p>البحث: {{ search_query }}</p>
+            {% endif %}
+            {% if from_date or to_date %}
+            <p>
+                الفترة: 
+                {% if from_date %}من {{ from_date }}{% endif %}
+                {% if to_date %} إلى {{ to_date }}{% endif %}
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="info">
+            <div class="info-item">
+                <strong>عدد التسكينات:</strong> {{ incubations|length }}
+            </div>
+            <div class="info-item">
+                <strong>إجمالي الكتاكيت المسكنة:</strong> 
+                {% with total_quantity=0 %}
+                    {% for incubation in incubations %}
+                        {% with total_quantity=total_quantity|add:incubation.incubation_quantity %}{% endwith %}
+                    {% endfor %}
+                    {{ total_quantity }}
+                {% endwith %}
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم الدفعة</th>
+                    <th>تاريخ التسكين</th>
+                    <th>عدد التسكين</th>
+                    <th>المعدم عند التسكين</th>
+                    <th>تاريخ الخروج المتوقع</th>
+                    <th>الحالة</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for incubation in incubations %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ incubation.batch_entry.batch_name }}</td>
+                    <td>{{ incubation.incubation_date }}</td>
+                    <td>{{ incubation.incubation_quantity }}</td>
+                    <td>{{ incubation.damaged_quantity }}</td>
+                    <td>{{ incubation.expected_hatch_date }}</td>
+                    <td>
+                        {% if incubation.hatching %}
+                            <span class="status-badge status-hatched">خرجت</span>
+                        {% elif incubation.is_ready_to_hatch %}
+                            <span class="status-badge status-ready">جاهزة للخروج</span>
+                        {% else %}
+                            <span class="status-badge status-waiting">قيد التسكين</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ incubation.notes|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center;">لا توجد تسكينات مسجلة</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="footer">
+            <p>تم إنشاء هذا التقرير في {{ current_datetime }}</p>
+        </div>
+    </div>
+
+    <!-- إضافة مكتبات jsPDF و SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // دالة تصدير إلى PDF
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+
+            // إخفاء أزرار الطباعة والتصدير
+            const printButtons = document.querySelector('.no-print');
+            printButtons.style.display = 'none';
+
+            // إنشاء PDF
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // استخدام html2canvas لتحويل المحتوى إلى صورة
+            html2canvas(document.querySelector('.print-container'), {
+                scale: 2,
+                useCORS: true,
+                logging: false
+            }).then(canvas => {
+                // إضافة الصورة إلى PDF
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = doc.internal.pageSize.getWidth() - 20;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                doc.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+                
+                // تنزيل الملف
+                doc.save('قائمة_تسكين_الدفعات_{{ current_datetime|date:"Y-m-d" }}.pdf');
+                
+                // إظهار الأزرار مرة أخرى
+                printButtons.style.display = 'flex';
+            });
+        }
+
+        // دالة تصدير إلى Excel
+        function exportToExcel() {
+            // الحصول على جدول البيانات
+            const table = document.querySelector('table');
+            
+            // إنشاء مصفوفة لتخزين البيانات
+            const data = [];
+            
+            // إضافة العناوين
+            const headers = [];
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                headers.push(cell.innerText.trim());
+            });
+            data.push(headers);
+            
+            // إضافة البيانات
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    rowData.push(cell.innerText.trim());
+                });
+                data.push(rowData);
+            });
+            
+            // إنشاء ورقة عمل
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // إنشاء مصنف عمل
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'تسكين الدفعات');
+            
+            // تنزيل الملف
+            XLSX.writeFile(wb, 'قائمة_تسكين_الدفعات_{{ current_datetime|date:"Y-m-d" }}.xlsx');
+        }
+    </script>
+</body>
+</html>
