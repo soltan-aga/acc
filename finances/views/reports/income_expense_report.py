@@ -75,7 +75,7 @@ def income_expense_report(request):
     total_expense = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
     net_profit = total_income - total_expense
 
-    return render(request, 'finances/reports/income_expense.html', {
+    return render(request, 'finances/reports/income_expense_report.html', {
         'incomes': incomes,
         'expenses': expenses,
         'income_by_category': income_by_category,

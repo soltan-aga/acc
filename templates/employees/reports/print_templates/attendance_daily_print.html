@@ -160,6 +160,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>#</th>
                     <th>الموظف</th>
                     <th>الحالة</th>
                     <th>وقت الحضور</th>
@@ -170,6 +171,7 @@
             <tbody>
                 {% for item in employees_attendance %}
                 <tr>
+                    <td>{{ item.employee.id }}</td>
                     <td>{{ item.employee.name }}</td>
                     <td>
                         {% if item.attendance %}

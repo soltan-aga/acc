@@ -114,6 +114,7 @@
         <table>
             <thead>
                 <tr>
+                    <th>#</th>
                     <th>الموظف</th>
                     <th>أيام الحضور</th>
                     <th>أيام الغياب</th>
@@ -125,6 +126,7 @@
             <tbody>
                 {% for item in report_data %}
                 <tr>
+                    <td>{{ item.employee.id }}</td>
                     <td>{{ item.employee.name }}</td>
                     <td>{{ item.present_count }}</td>
                     <td>{{ item.absent_count }}</td>
@@ -140,7 +142,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center">لا يوجد بيانات</td>
+                    <td colspan="7" class="text-center">لا يوجد بيانات</td>
                 </tr>
                 {% endfor %}
             </tbody>

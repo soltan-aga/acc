@@ -56,6 +56,7 @@
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>الاسم</th>
                             <th>المسمى الوظيفي</th>
                             <th>القسم</th>
@@ -68,6 +69,7 @@
                     <tbody>
                         {% for employee in employees %}
                         <tr>
+                            <td>{{ employee.id }}</td>
                             <td>{{ employee.name }}</td>
                             <td>{{ employee.job_title|default:"-" }}</td>
                             <td>{{ employee.department|default:"-" }}</td>
@@ -83,20 +85,23 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'employees:employee_detail' employee.id %}" class="btn btn-info btn-sm">
+                                <a href="{% url 'employees:employee_detail' employee.id %}" class="btn btn-info btn-sm" title="عرض التفاصيل">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{% url 'employees:employee_edit' employee.id %}" class="btn btn-primary btn-sm">
+                                <a href="{% url 'employees:employee_edit' employee.id %}" class="btn btn-primary btn-sm" title="تعديل">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="{% url 'employees:report_employee_attendance' employee.id %}" class="btn btn-secondary btn-sm">
+                                <a href="{% url 'employees:report_employee_attendance' employee.id %}" class="btn btn-secondary btn-sm" title="سجل الحضور">
                                     <i class="fas fa-calendar-check"></i>
+                                </a>
+                                <a href="{% url 'employees:employee_delete' employee.id %}" class="btn btn-danger btn-sm" title="حذف">
+                                    <i class="fas fa-trash"></i>
                                 </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">لا يوجد موظفين</td>
+                            <td colspan="8" class="text-center">لا يوجد موظفين</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -114,7 +119,7 @@
             "language": {
                 "url": "{% static 'js/dataTables.arabic.json' %}"
             },
-            "order": [[0, "asc"]]
+            "order": [] // إزالة الترتيب الافتراضي للسماح بالترتيب من الخادم
         });
     });
 </script>

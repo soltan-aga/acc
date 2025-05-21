@@ -318,6 +318,7 @@
         <table>
             <thead>
                 <tr>
+                    <th rowspan="2" class="summary-col">#</th>
                     <th rowspan="2" class="employee-name-col">الموظف</th>
                     {% for day in days_in_month|get_range %}
                     <th class="day-header">{{ day }}</th>
@@ -330,6 +331,7 @@
             <tbody>
                 {% for employee_data in employees_data %}
                 <tr>
+                    <td>{{ employee_data.employee.id }}</td>
                     <td class="employee-name">{{ employee_data.employee.name }}</td>
                     {% for day_data in employee_data.days %}
                     <td class="
@@ -364,7 +366,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="{{ days_in_month|add:4 }}" class="text-center">لا يوجد موظفين</td>
+                    <td colspan="{{ days_in_month|add:5 }}" class="text-center">لا يوجد موظفين</td>
                 </tr>
                 {% endfor %}
             </tbody>

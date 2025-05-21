@@ -16,7 +16,7 @@ from .forms import EmployeeForm, AttendanceForm, BulkAttendanceForm, EmployeeLoa
 @login_required
 def employee_list(request):
     """عرض قائمة الموظفين"""
-    employees = Employee.objects.all()
+    employees = Employee.objects.all().order_by('id')  # ترتيب من الأقدم للأحدث حسب الـ ID
     return render(request, 'employees/employee/list.html', {'employees': employees})
 
 @login_required
@@ -86,6 +86,35 @@ def employee_edit(request, pk):
         'employee': employee
     })
 
+@login_required
+def employee_delete(request, pk):
+    """حذف موظف"""
+    employee = get_object_or_404(Employee, pk=pk)
+
+    if request.method == 'POST':
+        employee_name = employee.name
+
+        # التحقق من وجود سجلات مرتبطة بالموظف
+        has_attendance = employee.attendance_records.exists()
+        has_loans = employee.loans.exists()
+        has_salaries = employee.salaries.exists()
+
+        if has_attendance or has_loans or has_salaries:
+            messages.error(request, f'لا يمكن حذف الموظف {employee_name} لوجود سجلات مرتبطة به (حضور، سلف، أو رواتب)')
+            return redirect('employees:employee_detail', pk=employee.pk)
+
+        try:
+            employee.delete()
+            messages.success(request, f'تم حذف الموظف {employee_name} بنجاح')
+            return redirect('employees:employee_list')
+        except Exception as e:
+            messages.error(request, f'حدث خطأ أثناء حذف الموظف: {str(e)}')
+            return redirect('employees:employee_detail', pk=employee.pk)
+
+    return render(request, 'employees/employee/delete.html', {
+        'employee': employee
+    })
+
 # صفحات الحضور والغياب
 @login_required
 def attendance_list(request):
@@ -107,10 +136,10 @@ def attendance_daily(request):
         selected_date = timezone.now().date()
 
     # الحصول على سجلات الحضور لهذا اليوم
-    attendance_records = Attendance.objects.filter(date=selected_date).order_by('employee__name')
+    attendance_records = Attendance.objects.filter(date=selected_date).order_by('employee__id')
 
-    # الحصول على جميع الموظفين النشطين
-    active_employees = Employee.objects.filter(status=Employee.ACTIVE)
+    # الحصول على جميع الموظفين النشطين مرتبين حسب الـ ID
+    active_employees = Employee.objects.filter(status=Employee.ACTIVE).order_by('id')
 
     # إنشاء قائمة بالموظفين وحالة حضورهم
     employees_attendance = []
@@ -152,8 +181,8 @@ def attendance_monthly(request):
     # الحصول على عدد أيام الشهر
     _, days_in_month = calendar.monthrange(year, month)
 
-    # الحصول على جميع الموظفين النشطين
-    active_employees = Employee.objects.filter(status=Employee.ACTIVE)
+    # الحصول على جميع الموظفين النشطين مرتبين حسب الـ ID
+    active_employees = Employee.objects.filter(status=Employee.ACTIVE).order_by('id')
 
     # الحصول على سجلات الحضور لهذا الشهر
     attendance_records = Attendance.objects.filter(
@@ -801,10 +830,10 @@ def report_attendance_daily(request):
         selected_date = timezone.now().date()
 
     # الحصول على سجلات الحضور لهذا اليوم
-    attendance_records = Attendance.objects.filter(date=selected_date).order_by('employee__name')
+    attendance_records = Attendance.objects.filter(date=selected_date).order_by('employee__id')
 
-    # الحصول على جميع الموظفين النشطين
-    active_employees = Employee.objects.filter(status=Employee.ACTIVE)
+    # الحصول على جميع الموظفين النشطين مرتبين حسب الـ ID
+    active_employees = Employee.objects.filter(status=Employee.ACTIVE).order_by('id')
 
     # إنشاء قائمة بالموظفين وحالة حضورهم
     employees_attendance = []
@@ -849,8 +878,8 @@ def report_attendance_monthly(request):
         year = timezone.now().year
         month = timezone.now().month
 
-    # الحصول على جميع الموظفين النشطين
-    active_employees = Employee.objects.filter(status=Employee.ACTIVE)
+    # الحصول على جميع الموظفين النشطين مرتبين حسب الـ ID
+    active_employees = Employee.objects.filter(status=Employee.ACTIVE).order_by('id')
 
     # إنشاء بيانات التقرير
     report_data = []

@@ -1,0 +1,49 @@
+# تعليمات إعداد قاعدة بيانات MySQL
+
+## 1. إنشاء قاعدة البيانات
+
+يمكنك إنشاء قاعدة البيانات باستخدام إحدى الطرق التالية:
+
+### باستخدام phpMyAdmin:
+1. افتح phpMyAdmin في المتصفح (عادة على الرابط http://localhost/phpmyadmin/)
+2. انقر على "قواعد البيانات" في الأعلى
+3. أدخل "acc_db" في حقل "إنشاء قاعدة بيانات"
+4. اختر "utf8mb4_unicode_ci" من القائمة المنسدلة
+5. انقر على "إنشاء"
+
+### باستخدام MySQL Workbench:
+1. افتح MySQL Workbench
+2. اتصل بخادم MySQL المحلي
+3. افتح نافذة SQL جديدة
+4. نفذ الأمر التالي:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS acc_db
+   CHARACTER SET utf8mb4
+   COLLATE utf8mb4_unicode_ci;
+   ```
+
+### باستخدام سطر الأوامر (إذا كان MySQL متاحًا في PATH):
+```
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS acc_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+## 2. تهيئة قاعدة البيانات
+
+بعد إنشاء قاعدة البيانات، قم بتشغيل الأوامر التالية لتهيئة قاعدة البيانات:
+
+```
+python manage.py makemigrations
+python manage.py migrate
+```
+
+## 3. إنشاء مستخدم مدير (إذا لزم الأمر)
+
+```
+python manage.py createsuperuser
+```
+
+## 4. تشغيل الخادم
+
+```
+python manage.py runserver
+```
